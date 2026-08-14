@@ -1,0 +1,7 @@
+.agents/
+__pycache__/
+.logs/
+.venv/
+data/
+.env
+*.egg-info

@@ -50,6 +50,14 @@ Historical information will be constructed from each team's previous matches $(t
 
 If features are calculated using a fixed lookback period rather than a fixed number of previous matches, the minimum lookback window should be approximately 7×t days, where t is the desired number of historical matches. The 7-day interval reflects the typical scheduling frequency of league matches and helps ensure that the window captures approximately t previous league fixtures.
 
+## Imputation Logic
+
+Feature computations are allowed to cross season boundaries because matches from previous seasons are considered relevant historical information. For each match, these computations must still use only information that was available before kickoff.
+
+For the first modelling iteration, all missing feature values will be imputed as `0`. This applies whether a value is missing because an event was structurally absent, a calculation was undefined due to insufficient history, or the data provider did not supply the observation.
+
+This intentionally simple baseline may be replaced in future iterations by a more dynamic, team-aware imputation strategy. Such a strategy could account for the number, recency, and quality of a team's available historical observations, but zero imputation is considered sufficient for the initial model.
+
 # WIP: (DESIGN FEATURES USING CODEX)
 
 

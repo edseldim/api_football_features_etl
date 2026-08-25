@@ -58,7 +58,16 @@ For the first modelling iteration, all missing feature values will be imputed as
 
 This intentionally simple baseline may be replaced in future iterations by a more dynamic, team-aware imputation strategy. Such a strategy could account for the number, recency, and quality of a team's available historical observations, but zero imputation is considered sufficient for the initial model.
 
-# WIP: (DESIGN FEATURES USING CODEX)
+# Feature families
+
+| Feature family | Description | Naming pattern |
+| - | - | - |
+| **Match-result history** | Goals scored, win status, and whether the team played at home in each previous match. | `home_lag_goals_1`, `away_lag_is_winner_2`, `home_lag_is_home_4` |
+| **Team match statistics** | Shots on/off target, total and blocked shots, shots inside/outside the box, fouls, corners, offsides, possession, cards, goalkeeper saves, passes, passing accuracy, and goals prevented. | `home_lag_total_shots_1`, `away_avg_ball_possession_3` |
+| **Match-event counts** | VAR and disciplinary events, goal types and decisions, penalties, red cards, yellow cards, and substitutions by recorded substitution slot. | `home_sum_goal_disallowed_3`, `away_lag_penalty_awarded_2` |
+| **Aggregated player statistics** | Team-level aggregates constructed from player observations, including minutes, shots, goals, assists, saves, passes, tackles, duels, dribbles, fouls, cards, and penalties. | `home_avg_passes_accuracy_3`, `away_max_duels_won_3` |
+| **Recent tendencies** | Linear trend estimates over the previous three matches for the match-statistic, event, and player-statistic measures. | `home_shots_on_goal_slope_3`, `away_goals_total_slope_3` |
+| **Recent-window summaries** | Sum, average, maximum, and minimum values over the previous three matches. The applicable functions depend on the underlying measure. | `home_sum_goals_3`, `away_avg_total_passes_3`, `home_min_cards_red_3` |
 
 
 ## Potential Biases

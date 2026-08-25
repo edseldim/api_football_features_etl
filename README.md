@@ -56,7 +56,7 @@ For the first modelling iteration, all missing feature values will be imputed as
 
 This intentionally simple baseline may be replaced in future iterations by a more dynamic, team-aware imputation strategy. Such a strategy could account for the number, recency, and quality of a team's available historical observations, but zero imputation is considered sufficient for the initial model.
 
-# Feature families
+## Feature families
 
 | Feature family | Description | Naming pattern |
 | - | - | - |

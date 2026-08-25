@@ -433,344 +433,346 @@ fixture_id
 ,penalty_scored
 ,penalty_missed
 ,penalty_saved
-,LAG(date,1) OVER (PARTITION BY team_id ORDER BY date) AS date_1
-,LAG(date,2) OVER (PARTITION BY team_id ORDER BY date) AS date_2
-,LAG(date,3) OVER (PARTITION BY team_id ORDER BY date) AS date_3
-,LAG(date,4) OVER (PARTITION BY team_id ORDER BY date) AS date_4
-,LAG(goals,1) OVER (PARTITION BY team_id ORDER BY date) AS lag_goals_1
-,LAG(goals,2) OVER (PARTITION BY team_id ORDER BY date) AS lag_goals_2
-,LAG(goals,3) OVER (PARTITION BY team_id ORDER BY date) AS lag_goals_3
-,LAG(goals,4) OVER (PARTITION BY team_id ORDER BY date) AS lag_goals_4
-,LAG(is_winner,1) OVER (PARTITION BY team_id ORDER BY date) AS lag_is_winner_1
-,LAG(is_winner,2) OVER (PARTITION BY team_id ORDER BY date) AS lag_is_winner_2
-,LAG(is_winner,3) OVER (PARTITION BY team_id ORDER BY date) AS lag_is_winner_3
-,LAG(is_winner,4) OVER (PARTITION BY team_id ORDER BY date) AS lag_is_winner_4
-,LAG(is_home,1) OVER (PARTITION BY team_id ORDER BY date) AS lag_is_home_1
-,LAG(is_home,2) OVER (PARTITION BY team_id ORDER BY date) AS lag_is_home_2
-,LAG(is_home,3) OVER (PARTITION BY team_id ORDER BY date) AS lag_is_home_3
-,LAG(is_home,4) OVER (PARTITION BY team_id ORDER BY date) AS lag_is_home_4
-,LAG(shots_on_goal,1) OVER (PARTITION BY team_id ORDER BY date) AS lag_shots_on_goal_1
-,LAG(shots_on_goal,2) OVER (PARTITION BY team_id ORDER BY date) AS lag_shots_on_goal_2
-,LAG(shots_on_goal,3) OVER (PARTITION BY team_id ORDER BY date) AS lag_shots_on_goal_3
-,LAG(shots_on_goal,4) OVER (PARTITION BY team_id ORDER BY date) AS lag_shots_on_goal_4
-,LAG(shots_off_goal,1) OVER (PARTITION BY team_id ORDER BY date) AS lag_shots_off_goal_1
-,LAG(shots_off_goal,2) OVER (PARTITION BY team_id ORDER BY date) AS lag_shots_off_goal_2
-,LAG(shots_off_goal,3) OVER (PARTITION BY team_id ORDER BY date) AS lag_shots_off_goal_3
-,LAG(shots_off_goal,4) OVER (PARTITION BY team_id ORDER BY date) AS lag_shots_off_goal_4
-,LAG(total_shots,1) OVER (PARTITION BY team_id ORDER BY date) AS lag_total_shots_1
-,LAG(total_shots,2) OVER (PARTITION BY team_id ORDER BY date) AS lag_total_shots_2
-,LAG(total_shots,3) OVER (PARTITION BY team_id ORDER BY date) AS lag_total_shots_3
-,LAG(total_shots,4) OVER (PARTITION BY team_id ORDER BY date) AS lag_total_shots_4
-,LAG(blocked_shots,1) OVER (PARTITION BY team_id ORDER BY date) AS lag_blocked_shots_1
-,LAG(blocked_shots,2) OVER (PARTITION BY team_id ORDER BY date) AS lag_blocked_shots_2
-,LAG(blocked_shots,3) OVER (PARTITION BY team_id ORDER BY date) AS lag_blocked_shots_3
-,LAG(blocked_shots,4) OVER (PARTITION BY team_id ORDER BY date) AS lag_blocked_shots_4
-,LAG(shots_insidebox,1) OVER (PARTITION BY team_id ORDER BY date) AS lag_shots_insidebox_1
-,LAG(shots_insidebox,2) OVER (PARTITION BY team_id ORDER BY date) AS lag_shots_insidebox_2
-,LAG(shots_insidebox,3) OVER (PARTITION BY team_id ORDER BY date) AS lag_shots_insidebox_3
-,LAG(shots_insidebox,4) OVER (PARTITION BY team_id ORDER BY date) AS lag_shots_insidebox_4
-,LAG(shots_outsidebox,1) OVER (PARTITION BY team_id ORDER BY date) AS lag_shots_outsidebox_1
-,LAG(shots_outsidebox,2) OVER (PARTITION BY team_id ORDER BY date) AS lag_shots_outsidebox_2
-,LAG(shots_outsidebox,3) OVER (PARTITION BY team_id ORDER BY date) AS lag_shots_outsidebox_3
-,LAG(shots_outsidebox,4) OVER (PARTITION BY team_id ORDER BY date) AS lag_shots_outsidebox_4
-,LAG(fouls,1) OVER (PARTITION BY team_id ORDER BY date) AS lag_fouls_1
-,LAG(fouls,2) OVER (PARTITION BY team_id ORDER BY date) AS lag_fouls_2
-,LAG(fouls,3) OVER (PARTITION BY team_id ORDER BY date) AS lag_fouls_3
-,LAG(fouls,4) OVER (PARTITION BY team_id ORDER BY date) AS lag_fouls_4
-,LAG(corner_kicks,1) OVER (PARTITION BY team_id ORDER BY date) AS lag_corner_kicks_1
-,LAG(corner_kicks,2) OVER (PARTITION BY team_id ORDER BY date) AS lag_corner_kicks_2
-,LAG(corner_kicks,3) OVER (PARTITION BY team_id ORDER BY date) AS lag_corner_kicks_3
-,LAG(corner_kicks,4) OVER (PARTITION BY team_id ORDER BY date) AS lag_corner_kicks_4
-,LAG(offsides,1) OVER (PARTITION BY team_id ORDER BY date) AS lag_offsides_1
-,LAG(offsides,2) OVER (PARTITION BY team_id ORDER BY date) AS lag_offsides_2
-,LAG(offsides,3) OVER (PARTITION BY team_id ORDER BY date) AS lag_offsides_3
-,LAG(offsides,4) OVER (PARTITION BY team_id ORDER BY date) AS lag_offsides_4
-,LAG(ball_possession,1) OVER (PARTITION BY team_id ORDER BY date) AS lag_ball_possession_1
-,LAG(ball_possession,2) OVER (PARTITION BY team_id ORDER BY date) AS lag_ball_possession_2
-,LAG(ball_possession,3) OVER (PARTITION BY team_id ORDER BY date) AS lag_ball_possession_3
-,LAG(ball_possession,4) OVER (PARTITION BY team_id ORDER BY date) AS lag_ball_possession_4
-,LAG(yellow_cards,1) OVER (PARTITION BY team_id ORDER BY date) AS lag_yellow_cards_1
-,LAG(yellow_cards,2) OVER (PARTITION BY team_id ORDER BY date) AS lag_yellow_cards_2
-,LAG(yellow_cards,3) OVER (PARTITION BY team_id ORDER BY date) AS lag_yellow_cards_3
-,LAG(yellow_cards,4) OVER (PARTITION BY team_id ORDER BY date) AS lag_yellow_cards_4
-,LAG(red_cards,1) OVER (PARTITION BY team_id ORDER BY date) AS lag_red_cards_1
-,LAG(red_cards,2) OVER (PARTITION BY team_id ORDER BY date) AS lag_red_cards_2
-,LAG(red_cards,3) OVER (PARTITION BY team_id ORDER BY date) AS lag_red_cards_3
-,LAG(red_cards,4) OVER (PARTITION BY team_id ORDER BY date) AS lag_red_cards_4
-,LAG(goalkeeper_saves,1) OVER (PARTITION BY team_id ORDER BY date) AS lag_goalkeeper_saves_1
-,LAG(goalkeeper_saves,2) OVER (PARTITION BY team_id ORDER BY date) AS lag_goalkeeper_saves_2
-,LAG(goalkeeper_saves,3) OVER (PARTITION BY team_id ORDER BY date) AS lag_goalkeeper_saves_3
-,LAG(goalkeeper_saves,4) OVER (PARTITION BY team_id ORDER BY date) AS lag_goalkeeper_saves_4
-,LAG(total_passes,1) OVER (PARTITION BY team_id ORDER BY date) AS lag_total_passes_1
-,LAG(total_passes,2) OVER (PARTITION BY team_id ORDER BY date) AS lag_total_passes_2
-,LAG(total_passes,3) OVER (PARTITION BY team_id ORDER BY date) AS lag_total_passes_3
-,LAG(total_passes,4) OVER (PARTITION BY team_id ORDER BY date) AS lag_total_passes_4
-,LAG(passes_accurate,1) OVER (PARTITION BY team_id ORDER BY date) AS lag_passes_accurate_1
-,LAG(passes_accurate,2) OVER (PARTITION BY team_id ORDER BY date) AS lag_passes_accurate_2
-,LAG(passes_accurate,3) OVER (PARTITION BY team_id ORDER BY date) AS lag_passes_accurate_3
-,LAG(passes_accurate,4) OVER (PARTITION BY team_id ORDER BY date) AS lag_passes_accurate_4
-,LAG(passes_perc,1) OVER (PARTITION BY team_id ORDER BY date) AS lag_passes_perc_1
-,LAG(passes_perc,2) OVER (PARTITION BY team_id ORDER BY date) AS lag_passes_perc_2
-,LAG(passes_perc,3) OVER (PARTITION BY team_id ORDER BY date) AS lag_passes_perc_3
-,LAG(passes_perc,4) OVER (PARTITION BY team_id ORDER BY date) AS lag_passes_perc_4
-,LAG(goals_prevented,1) OVER (PARTITION BY team_id ORDER BY date) AS lag_goals_prevented_1
-,LAG(goals_prevented,2) OVER (PARTITION BY team_id ORDER BY date) AS lag_goals_prevented_2
-,LAG(goals_prevented,3) OVER (PARTITION BY team_id ORDER BY date) AS lag_goals_prevented_3
-,LAG(goals_prevented,4) OVER (PARTITION BY team_id ORDER BY date) AS lag_goals_prevented_4
-,LAG(card_reviewed,1) OVER (PARTITION BY team_id ORDER BY date) AS lag_card_reviewed_1
-,LAG(card_reviewed,2) OVER (PARTITION BY team_id ORDER BY date) AS lag_card_reviewed_2
-,LAG(card_reviewed,3) OVER (PARTITION BY team_id ORDER BY date) AS lag_card_reviewed_3
-,LAG(card_reviewed,4) OVER (PARTITION BY team_id ORDER BY date) AS lag_card_reviewed_4
-,LAG(card_upgrade,1) OVER (PARTITION BY team_id ORDER BY date) AS lag_card_upgrade_1
-,LAG(card_upgrade,2) OVER (PARTITION BY team_id ORDER BY date) AS lag_card_upgrade_2
-,LAG(card_upgrade,3) OVER (PARTITION BY team_id ORDER BY date) AS lag_card_upgrade_3
-,LAG(card_upgrade,4) OVER (PARTITION BY team_id ORDER BY date) AS lag_card_upgrade_4
-,LAG(goal_cancelled,1) OVER (PARTITION BY team_id ORDER BY date) AS lag_goal_cancelled_1
-,LAG(goal_cancelled,2) OVER (PARTITION BY team_id ORDER BY date) AS lag_goal_cancelled_2
-,LAG(goal_cancelled,3) OVER (PARTITION BY team_id ORDER BY date) AS lag_goal_cancelled_3
-,LAG(goal_cancelled,4) OVER (PARTITION BY team_id ORDER BY date) AS lag_goal_cancelled_4
-,LAG(goal_confirmed,1) OVER (PARTITION BY team_id ORDER BY date) AS lag_goal_confirmed_1
-,LAG(goal_confirmed,2) OVER (PARTITION BY team_id ORDER BY date) AS lag_goal_confirmed_2
-,LAG(goal_confirmed,3) OVER (PARTITION BY team_id ORDER BY date) AS lag_goal_confirmed_3
-,LAG(goal_confirmed,4) OVER (PARTITION BY team_id ORDER BY date) AS lag_goal_confirmed_4
-,LAG(goal_disallowed,1) OVER (PARTITION BY team_id ORDER BY date) AS lag_goal_disallowed_1
-,LAG(goal_disallowed,2) OVER (PARTITION BY team_id ORDER BY date) AS lag_goal_disallowed_2
-,LAG(goal_disallowed,3) OVER (PARTITION BY team_id ORDER BY date) AS lag_goal_disallowed_3
-,LAG(goal_disallowed,4) OVER (PARTITION BY team_id ORDER BY date) AS lag_goal_disallowed_4
-,LAG(goal_disallowed_foul,1) OVER (PARTITION BY team_id ORDER BY date) AS lag_goal_disallowed_foul_1
-,LAG(goal_disallowed_foul,2) OVER (PARTITION BY team_id ORDER BY date) AS lag_goal_disallowed_foul_2
-,LAG(goal_disallowed_foul,3) OVER (PARTITION BY team_id ORDER BY date) AS lag_goal_disallowed_foul_3
-,LAG(goal_disallowed_foul,4) OVER (PARTITION BY team_id ORDER BY date) AS lag_goal_disallowed_foul_4
-,LAG(goal_disallowed_handball,1) OVER (PARTITION BY team_id ORDER BY date) AS lag_goal_disallowed_handball_1
-,LAG(goal_disallowed_handball,2) OVER (PARTITION BY team_id ORDER BY date) AS lag_goal_disallowed_handball_2
-,LAG(goal_disallowed_handball,3) OVER (PARTITION BY team_id ORDER BY date) AS lag_goal_disallowed_handball_3
-,LAG(goal_disallowed_handball,4) OVER (PARTITION BY team_id ORDER BY date) AS lag_goal_disallowed_handball_4
-,LAG(goal_disallowed_offside,1) OVER (PARTITION BY team_id ORDER BY date) AS lag_goal_disallowed_offside_1
-,LAG(goal_disallowed_offside,2) OVER (PARTITION BY team_id ORDER BY date) AS lag_goal_disallowed_offside_2
-,LAG(goal_disallowed_offside,3) OVER (PARTITION BY team_id ORDER BY date) AS lag_goal_disallowed_offside_3
-,LAG(goal_disallowed_offside,4) OVER (PARTITION BY team_id ORDER BY date) AS lag_goal_disallowed_offside_4
-,LAG(missed_penalty,1) OVER (PARTITION BY team_id ORDER BY date) AS lag_missed_penalty_1
-,LAG(missed_penalty,2) OVER (PARTITION BY team_id ORDER BY date) AS lag_missed_penalty_2
-,LAG(missed_penalty,3) OVER (PARTITION BY team_id ORDER BY date) AS lag_missed_penalty_3
-,LAG(missed_penalty,4) OVER (PARTITION BY team_id ORDER BY date) AS lag_missed_penalty_4
-,LAG(normal_goal,1) OVER (PARTITION BY team_id ORDER BY date) AS lag_normal_goal_1
-,LAG(normal_goal,2) OVER (PARTITION BY team_id ORDER BY date) AS lag_normal_goal_2
-,LAG(normal_goal,3) OVER (PARTITION BY team_id ORDER BY date) AS lag_normal_goal_3
-,LAG(normal_goal,4) OVER (PARTITION BY team_id ORDER BY date) AS lag_normal_goal_4
-,LAG(own_goal,1) OVER (PARTITION BY team_id ORDER BY date) AS lag_own_goal_1
-,LAG(own_goal,2) OVER (PARTITION BY team_id ORDER BY date) AS lag_own_goal_2
-,LAG(own_goal,3) OVER (PARTITION BY team_id ORDER BY date) AS lag_own_goal_3
-,LAG(own_goal,4) OVER (PARTITION BY team_id ORDER BY date) AS lag_own_goal_4
-,LAG(penalty,1) OVER (PARTITION BY team_id ORDER BY date) AS lag_penalty_1
-,LAG(penalty,2) OVER (PARTITION BY team_id ORDER BY date) AS lag_penalty_2
-,LAG(penalty,3) OVER (PARTITION BY team_id ORDER BY date) AS lag_penalty_3
-,LAG(penalty,4) OVER (PARTITION BY team_id ORDER BY date) AS lag_penalty_4
-,LAG(penalty_awarded,1) OVER (PARTITION BY team_id ORDER BY date) AS lag_penalty_awarded_1
-,LAG(penalty_awarded,2) OVER (PARTITION BY team_id ORDER BY date) AS lag_penalty_awarded_2
-,LAG(penalty_awarded,3) OVER (PARTITION BY team_id ORDER BY date) AS lag_penalty_awarded_3
-,LAG(penalty_awarded,4) OVER (PARTITION BY team_id ORDER BY date) AS lag_penalty_awarded_4
-,LAG(penalty_cancelled,1) OVER (PARTITION BY team_id ORDER BY date) AS lag_penalty_cancelled_1
-,LAG(penalty_cancelled,2) OVER (PARTITION BY team_id ORDER BY date) AS lag_penalty_cancelled_2
-,LAG(penalty_cancelled,3) OVER (PARTITION BY team_id ORDER BY date) AS lag_penalty_cancelled_3
-,LAG(penalty_cancelled,4) OVER (PARTITION BY team_id ORDER BY date) AS lag_penalty_cancelled_4
-,LAG(penalty_confirmed,1) OVER (PARTITION BY team_id ORDER BY date) AS lag_penalty_confirmed_1
-,LAG(penalty_confirmed,2) OVER (PARTITION BY team_id ORDER BY date) AS lag_penalty_confirmed_2
-,LAG(penalty_confirmed,3) OVER (PARTITION BY team_id ORDER BY date) AS lag_penalty_confirmed_3
-,LAG(penalty_confirmed,4) OVER (PARTITION BY team_id ORDER BY date) AS lag_penalty_confirmed_4
-,LAG(red_card,1) OVER (PARTITION BY team_id ORDER BY date) AS lag_red_card_1
-,LAG(red_card,2) OVER (PARTITION BY team_id ORDER BY date) AS lag_red_card_2
-,LAG(red_card,3) OVER (PARTITION BY team_id ORDER BY date) AS lag_red_card_3
-,LAG(red_card,4) OVER (PARTITION BY team_id ORDER BY date) AS lag_red_card_4
-,LAG(red_card_cancelled,1) OVER (PARTITION BY team_id ORDER BY date) AS lag_red_card_cancelled_1
-,LAG(red_card_cancelled,2) OVER (PARTITION BY team_id ORDER BY date) AS lag_red_card_cancelled_2
-,LAG(red_card_cancelled,3) OVER (PARTITION BY team_id ORDER BY date) AS lag_red_card_cancelled_3
-,LAG(red_card_cancelled,4) OVER (PARTITION BY team_id ORDER BY date) AS lag_red_card_cancelled_4
-,LAG(substitution_1,1) OVER (PARTITION BY team_id ORDER BY date) AS lag_substitution_1_1
-,LAG(substitution_1,2) OVER (PARTITION BY team_id ORDER BY date) AS lag_substitution_1_2
-,LAG(substitution_1,3) OVER (PARTITION BY team_id ORDER BY date) AS lag_substitution_1_3
-,LAG(substitution_1,4) OVER (PARTITION BY team_id ORDER BY date) AS lag_substitution_1_4
-,LAG(substitution_10,1) OVER (PARTITION BY team_id ORDER BY date) AS lag_substitution_10_1
-,LAG(substitution_10,2) OVER (PARTITION BY team_id ORDER BY date) AS lag_substitution_10_2
-,LAG(substitution_10,3) OVER (PARTITION BY team_id ORDER BY date) AS lag_substitution_10_3
-,LAG(substitution_10,4) OVER (PARTITION BY team_id ORDER BY date) AS lag_substitution_10_4
-,LAG(substitution_11,1) OVER (PARTITION BY team_id ORDER BY date) AS lag_substitution_11_1
-,LAG(substitution_11,2) OVER (PARTITION BY team_id ORDER BY date) AS lag_substitution_11_2
-,LAG(substitution_11,3) OVER (PARTITION BY team_id ORDER BY date) AS lag_substitution_11_3
-,LAG(substitution_11,4) OVER (PARTITION BY team_id ORDER BY date) AS lag_substitution_11_4
-,LAG(substitution_12,1) OVER (PARTITION BY team_id ORDER BY date) AS lag_substitution_12_1
-,LAG(substitution_12,2) OVER (PARTITION BY team_id ORDER BY date) AS lag_substitution_12_2
-,LAG(substitution_12,3) OVER (PARTITION BY team_id ORDER BY date) AS lag_substitution_12_3
-,LAG(substitution_12,4) OVER (PARTITION BY team_id ORDER BY date) AS lag_substitution_12_4
-,LAG(substitution_13,1) OVER (PARTITION BY team_id ORDER BY date) AS lag_substitution_13_1
-,LAG(substitution_13,2) OVER (PARTITION BY team_id ORDER BY date) AS lag_substitution_13_2
-,LAG(substitution_13,3) OVER (PARTITION BY team_id ORDER BY date) AS lag_substitution_13_3
-,LAG(substitution_13,4) OVER (PARTITION BY team_id ORDER BY date) AS lag_substitution_13_4
-,LAG(substitution_14,1) OVER (PARTITION BY team_id ORDER BY date) AS lag_substitution_14_1
-,LAG(substitution_14,2) OVER (PARTITION BY team_id ORDER BY date) AS lag_substitution_14_2
-,LAG(substitution_14,3) OVER (PARTITION BY team_id ORDER BY date) AS lag_substitution_14_3
-,LAG(substitution_14,4) OVER (PARTITION BY team_id ORDER BY date) AS lag_substitution_14_4
-,LAG(substitution_15,1) OVER (PARTITION BY team_id ORDER BY date) AS lag_substitution_15_1
-,LAG(substitution_15,2) OVER (PARTITION BY team_id ORDER BY date) AS lag_substitution_15_2
-,LAG(substitution_15,3) OVER (PARTITION BY team_id ORDER BY date) AS lag_substitution_15_3
-,LAG(substitution_15,4) OVER (PARTITION BY team_id ORDER BY date) AS lag_substitution_15_4
-,LAG(substitution_16,1) OVER (PARTITION BY team_id ORDER BY date) AS lag_substitution_16_1
-,LAG(substitution_16,2) OVER (PARTITION BY team_id ORDER BY date) AS lag_substitution_16_2
-,LAG(substitution_16,3) OVER (PARTITION BY team_id ORDER BY date) AS lag_substitution_16_3
-,LAG(substitution_16,4) OVER (PARTITION BY team_id ORDER BY date) AS lag_substitution_16_4
-,LAG(substitution_17,1) OVER (PARTITION BY team_id ORDER BY date) AS lag_substitution_17_1
-,LAG(substitution_17,2) OVER (PARTITION BY team_id ORDER BY date) AS lag_substitution_17_2
-,LAG(substitution_17,3) OVER (PARTITION BY team_id ORDER BY date) AS lag_substitution_17_3
-,LAG(substitution_17,4) OVER (PARTITION BY team_id ORDER BY date) AS lag_substitution_17_4
-,LAG(substitution_18,1) OVER (PARTITION BY team_id ORDER BY date) AS lag_substitution_18_1
-,LAG(substitution_18,2) OVER (PARTITION BY team_id ORDER BY date) AS lag_substitution_18_2
-,LAG(substitution_18,3) OVER (PARTITION BY team_id ORDER BY date) AS lag_substitution_18_3
-,LAG(substitution_18,4) OVER (PARTITION BY team_id ORDER BY date) AS lag_substitution_18_4
-,LAG(substitution_2,1) OVER (PARTITION BY team_id ORDER BY date) AS lag_substitution_2_1
-,LAG(substitution_2,2) OVER (PARTITION BY team_id ORDER BY date) AS lag_substitution_2_2
-,LAG(substitution_2,3) OVER (PARTITION BY team_id ORDER BY date) AS lag_substitution_2_3
-,LAG(substitution_2,4) OVER (PARTITION BY team_id ORDER BY date) AS lag_substitution_2_4
-,LAG(substitution_3,1) OVER (PARTITION BY team_id ORDER BY date) AS lag_substitution_3_1
-,LAG(substitution_3,2) OVER (PARTITION BY team_id ORDER BY date) AS lag_substitution_3_2
-,LAG(substitution_3,3) OVER (PARTITION BY team_id ORDER BY date) AS lag_substitution_3_3
-,LAG(substitution_3,4) OVER (PARTITION BY team_id ORDER BY date) AS lag_substitution_3_4
-,LAG(substitution_4,1) OVER (PARTITION BY team_id ORDER BY date) AS lag_substitution_4_1
-,LAG(substitution_4,2) OVER (PARTITION BY team_id ORDER BY date) AS lag_substitution_4_2
-,LAG(substitution_4,3) OVER (PARTITION BY team_id ORDER BY date) AS lag_substitution_4_3
-,LAG(substitution_4,4) OVER (PARTITION BY team_id ORDER BY date) AS lag_substitution_4_4
-,LAG(substitution_5,1) OVER (PARTITION BY team_id ORDER BY date) AS lag_substitution_5_1
-,LAG(substitution_5,2) OVER (PARTITION BY team_id ORDER BY date) AS lag_substitution_5_2
-,LAG(substitution_5,3) OVER (PARTITION BY team_id ORDER BY date) AS lag_substitution_5_3
-,LAG(substitution_5,4) OVER (PARTITION BY team_id ORDER BY date) AS lag_substitution_5_4
-,LAG(substitution_6,1) OVER (PARTITION BY team_id ORDER BY date) AS lag_substitution_6_1
-,LAG(substitution_6,2) OVER (PARTITION BY team_id ORDER BY date) AS lag_substitution_6_2
-,LAG(substitution_6,3) OVER (PARTITION BY team_id ORDER BY date) AS lag_substitution_6_3
-,LAG(substitution_6,4) OVER (PARTITION BY team_id ORDER BY date) AS lag_substitution_6_4
-,LAG(substitution_7,1) OVER (PARTITION BY team_id ORDER BY date) AS lag_substitution_7_1
-,LAG(substitution_7,2) OVER (PARTITION BY team_id ORDER BY date) AS lag_substitution_7_2
-,LAG(substitution_7,3) OVER (PARTITION BY team_id ORDER BY date) AS lag_substitution_7_3
-,LAG(substitution_7,4) OVER (PARTITION BY team_id ORDER BY date) AS lag_substitution_7_4
-,LAG(substitution_8,1) OVER (PARTITION BY team_id ORDER BY date) AS lag_substitution_8_1
-,LAG(substitution_8,2) OVER (PARTITION BY team_id ORDER BY date) AS lag_substitution_8_2
-,LAG(substitution_8,3) OVER (PARTITION BY team_id ORDER BY date) AS lag_substitution_8_3
-,LAG(substitution_8,4) OVER (PARTITION BY team_id ORDER BY date) AS lag_substitution_8_4
-,LAG(substitution_9,1) OVER (PARTITION BY team_id ORDER BY date) AS lag_substitution_9_1
-,LAG(substitution_9,2) OVER (PARTITION BY team_id ORDER BY date) AS lag_substitution_9_2
-,LAG(substitution_9,3) OVER (PARTITION BY team_id ORDER BY date) AS lag_substitution_9_3
-,LAG(substitution_9,4) OVER (PARTITION BY team_id ORDER BY date) AS lag_substitution_9_4
-,LAG(yellow_card,1) OVER (PARTITION BY team_id ORDER BY date) AS lag_yellow_card_1
-,LAG(yellow_card,2) OVER (PARTITION BY team_id ORDER BY date) AS lag_yellow_card_2
-,LAG(yellow_card,3) OVER (PARTITION BY team_id ORDER BY date) AS lag_yellow_card_3
-,LAG(yellow_card,4) OVER (PARTITION BY team_id ORDER BY date) AS lag_yellow_card_4
-,LAG(games_minutes,1) OVER (PARTITION BY team_id ORDER BY date) AS lag_games_minutes_1
-,LAG(games_minutes,2) OVER (PARTITION BY team_id ORDER BY date) AS lag_games_minutes_2
-,LAG(games_minutes,3) OVER (PARTITION BY team_id ORDER BY date) AS lag_games_minutes_3
-,LAG(games_minutes,4) OVER (PARTITION BY team_id ORDER BY date) AS lag_games_minutes_4
-,LAG(shots_total,1) OVER (PARTITION BY team_id ORDER BY date) AS lag_shots_total_1
-,LAG(shots_total,2) OVER (PARTITION BY team_id ORDER BY date) AS lag_shots_total_2
-,LAG(shots_total,3) OVER (PARTITION BY team_id ORDER BY date) AS lag_shots_total_3
-,LAG(shots_total,4) OVER (PARTITION BY team_id ORDER BY date) AS lag_shots_total_4
-,LAG(shots_on,1) OVER (PARTITION BY team_id ORDER BY date) AS lag_shots_on_1
-,LAG(shots_on,2) OVER (PARTITION BY team_id ORDER BY date) AS lag_shots_on_2
-,LAG(shots_on,3) OVER (PARTITION BY team_id ORDER BY date) AS lag_shots_on_3
-,LAG(shots_on,4) OVER (PARTITION BY team_id ORDER BY date) AS lag_shots_on_4
-,LAG(goals_total,1) OVER (PARTITION BY team_id ORDER BY date) AS lag_goals_total_1
-,LAG(goals_total,2) OVER (PARTITION BY team_id ORDER BY date) AS lag_goals_total_2
-,LAG(goals_total,3) OVER (PARTITION BY team_id ORDER BY date) AS lag_goals_total_3
-,LAG(goals_total,4) OVER (PARTITION BY team_id ORDER BY date) AS lag_goals_total_4
-,LAG(goals_conceded,1) OVER (PARTITION BY team_id ORDER BY date) AS lag_goals_conceded_1
-,LAG(goals_conceded,2) OVER (PARTITION BY team_id ORDER BY date) AS lag_goals_conceded_2
-,LAG(goals_conceded,3) OVER (PARTITION BY team_id ORDER BY date) AS lag_goals_conceded_3
-,LAG(goals_conceded,4) OVER (PARTITION BY team_id ORDER BY date) AS lag_goals_conceded_4
-,LAG(goals_assists,1) OVER (PARTITION BY team_id ORDER BY date) AS lag_goals_assists_1
-,LAG(goals_assists,2) OVER (PARTITION BY team_id ORDER BY date) AS lag_goals_assists_2
-,LAG(goals_assists,3) OVER (PARTITION BY team_id ORDER BY date) AS lag_goals_assists_3
-,LAG(goals_assists,4) OVER (PARTITION BY team_id ORDER BY date) AS lag_goals_assists_4
-,LAG(goals_saves,1) OVER (PARTITION BY team_id ORDER BY date) AS lag_goals_saves_1
-,LAG(goals_saves,2) OVER (PARTITION BY team_id ORDER BY date) AS lag_goals_saves_2
-,LAG(goals_saves,3) OVER (PARTITION BY team_id ORDER BY date) AS lag_goals_saves_3
-,LAG(goals_saves,4) OVER (PARTITION BY team_id ORDER BY date) AS lag_goals_saves_4
-,LAG(passes_total,1) OVER (PARTITION BY team_id ORDER BY date) AS lag_passes_total_1
-,LAG(passes_total,2) OVER (PARTITION BY team_id ORDER BY date) AS lag_passes_total_2
-,LAG(passes_total,3) OVER (PARTITION BY team_id ORDER BY date) AS lag_passes_total_3
-,LAG(passes_total,4) OVER (PARTITION BY team_id ORDER BY date) AS lag_passes_total_4
-,LAG(passes_key,1) OVER (PARTITION BY team_id ORDER BY date) AS lag_passes_key_1
-,LAG(passes_key,2) OVER (PARTITION BY team_id ORDER BY date) AS lag_passes_key_2
-,LAG(passes_key,3) OVER (PARTITION BY team_id ORDER BY date) AS lag_passes_key_3
-,LAG(passes_key,4) OVER (PARTITION BY team_id ORDER BY date) AS lag_passes_key_4
-,LAG(passes_accuracy,1) OVER (PARTITION BY team_id ORDER BY date) AS lag_passes_accuracy_1
-,LAG(passes_accuracy,2) OVER (PARTITION BY team_id ORDER BY date) AS lag_passes_accuracy_2
-,LAG(passes_accuracy,3) OVER (PARTITION BY team_id ORDER BY date) AS lag_passes_accuracy_3
-,LAG(passes_accuracy,4) OVER (PARTITION BY team_id ORDER BY date) AS lag_passes_accuracy_4
-,LAG(tackles_total,1) OVER (PARTITION BY team_id ORDER BY date) AS lag_tackles_total_1
-,LAG(tackles_total,2) OVER (PARTITION BY team_id ORDER BY date) AS lag_tackles_total_2
-,LAG(tackles_total,3) OVER (PARTITION BY team_id ORDER BY date) AS lag_tackles_total_3
-,LAG(tackles_total,4) OVER (PARTITION BY team_id ORDER BY date) AS lag_tackles_total_4
-,LAG(tackles_blocks,1) OVER (PARTITION BY team_id ORDER BY date) AS lag_tackles_blocks_1
-,LAG(tackles_blocks,2) OVER (PARTITION BY team_id ORDER BY date) AS lag_tackles_blocks_2
-,LAG(tackles_blocks,3) OVER (PARTITION BY team_id ORDER BY date) AS lag_tackles_blocks_3
-,LAG(tackles_blocks,4) OVER (PARTITION BY team_id ORDER BY date) AS lag_tackles_blocks_4
-,LAG(tackles_interceptions,1) OVER (PARTITION BY team_id ORDER BY date) AS lag_tackles_interceptions_1
-,LAG(tackles_interceptions,2) OVER (PARTITION BY team_id ORDER BY date) AS lag_tackles_interceptions_2
-,LAG(tackles_interceptions,3) OVER (PARTITION BY team_id ORDER BY date) AS lag_tackles_interceptions_3
-,LAG(tackles_interceptions,4) OVER (PARTITION BY team_id ORDER BY date) AS lag_tackles_interceptions_4
-,LAG(duels_total,1) OVER (PARTITION BY team_id ORDER BY date) AS lag_duels_total_1
-,LAG(duels_total,2) OVER (PARTITION BY team_id ORDER BY date) AS lag_duels_total_2
-,LAG(duels_total,3) OVER (PARTITION BY team_id ORDER BY date) AS lag_duels_total_3
-,LAG(duels_total,4) OVER (PARTITION BY team_id ORDER BY date) AS lag_duels_total_4
-,LAG(duels_won,1) OVER (PARTITION BY team_id ORDER BY date) AS lag_duels_won_1
-,LAG(duels_won,2) OVER (PARTITION BY team_id ORDER BY date) AS lag_duels_won_2
-,LAG(duels_won,3) OVER (PARTITION BY team_id ORDER BY date) AS lag_duels_won_3
-,LAG(duels_won,4) OVER (PARTITION BY team_id ORDER BY date) AS lag_duels_won_4
-,LAG(dribbles_attempts,1) OVER (PARTITION BY team_id ORDER BY date) AS lag_dribbles_attempts_1
-,LAG(dribbles_attempts,2) OVER (PARTITION BY team_id ORDER BY date) AS lag_dribbles_attempts_2
-,LAG(dribbles_attempts,3) OVER (PARTITION BY team_id ORDER BY date) AS lag_dribbles_attempts_3
-,LAG(dribbles_attempts,4) OVER (PARTITION BY team_id ORDER BY date) AS lag_dribbles_attempts_4
-,LAG(dribbles_success,1) OVER (PARTITION BY team_id ORDER BY date) AS lag_dribbles_success_1
-,LAG(dribbles_success,2) OVER (PARTITION BY team_id ORDER BY date) AS lag_dribbles_success_2
-,LAG(dribbles_success,3) OVER (PARTITION BY team_id ORDER BY date) AS lag_dribbles_success_3
-,LAG(dribbles_success,4) OVER (PARTITION BY team_id ORDER BY date) AS lag_dribbles_success_4
-,LAG(dribbles_past,1) OVER (PARTITION BY team_id ORDER BY date) AS lag_dribbles_past_1
-,LAG(dribbles_past,2) OVER (PARTITION BY team_id ORDER BY date) AS lag_dribbles_past_2
-,LAG(dribbles_past,3) OVER (PARTITION BY team_id ORDER BY date) AS lag_dribbles_past_3
-,LAG(dribbles_past,4) OVER (PARTITION BY team_id ORDER BY date) AS lag_dribbles_past_4
-,LAG(fouls_drawn,1) OVER (PARTITION BY team_id ORDER BY date) AS lag_fouls_drawn_1
-,LAG(fouls_drawn,2) OVER (PARTITION BY team_id ORDER BY date) AS lag_fouls_drawn_2
-,LAG(fouls_drawn,3) OVER (PARTITION BY team_id ORDER BY date) AS lag_fouls_drawn_3
-,LAG(fouls_drawn,4) OVER (PARTITION BY team_id ORDER BY date) AS lag_fouls_drawn_4
-,LAG(fouls_committed,1) OVER (PARTITION BY team_id ORDER BY date) AS lag_fouls_committed_1
-,LAG(fouls_committed,2) OVER (PARTITION BY team_id ORDER BY date) AS lag_fouls_committed_2
-,LAG(fouls_committed,3) OVER (PARTITION BY team_id ORDER BY date) AS lag_fouls_committed_3
-,LAG(fouls_committed,4) OVER (PARTITION BY team_id ORDER BY date) AS lag_fouls_committed_4
-,LAG(cards_yellow,1) OVER (PARTITION BY team_id ORDER BY date) AS lag_cards_yellow_1
-,LAG(cards_yellow,2) OVER (PARTITION BY team_id ORDER BY date) AS lag_cards_yellow_2
-,LAG(cards_yellow,3) OVER (PARTITION BY team_id ORDER BY date) AS lag_cards_yellow_3
-,LAG(cards_yellow,4) OVER (PARTITION BY team_id ORDER BY date) AS lag_cards_yellow_4
-,LAG(cards_red,1) OVER (PARTITION BY team_id ORDER BY date) AS lag_cards_red_1
-,LAG(cards_red,2) OVER (PARTITION BY team_id ORDER BY date) AS lag_cards_red_2
-,LAG(cards_red,3) OVER (PARTITION BY team_id ORDER BY date) AS lag_cards_red_3
-,LAG(cards_red,4) OVER (PARTITION BY team_id ORDER BY date) AS lag_cards_red_4
-,LAG(penalty_won,1) OVER (PARTITION BY team_id ORDER BY date) AS lag_penalty_won_1
-,LAG(penalty_won,2) OVER (PARTITION BY team_id ORDER BY date) AS lag_penalty_won_2
-,LAG(penalty_won,3) OVER (PARTITION BY team_id ORDER BY date) AS lag_penalty_won_3
-,LAG(penalty_won,4) OVER (PARTITION BY team_id ORDER BY date) AS lag_penalty_won_4
-,LAG(penalty_commited,1) OVER (PARTITION BY team_id ORDER BY date) AS lag_penalty_commited_1
-,LAG(penalty_commited,2) OVER (PARTITION BY team_id ORDER BY date) AS lag_penalty_commited_2
-,LAG(penalty_commited,3) OVER (PARTITION BY team_id ORDER BY date) AS lag_penalty_commited_3
-,LAG(penalty_commited,4) OVER (PARTITION BY team_id ORDER BY date) AS lag_penalty_commited_4
-,LAG(penalty_scored,1) OVER (PARTITION BY team_id ORDER BY date) AS lag_penalty_scored_1
-,LAG(penalty_scored,2) OVER (PARTITION BY team_id ORDER BY date) AS lag_penalty_scored_2
-,LAG(penalty_scored,3) OVER (PARTITION BY team_id ORDER BY date) AS lag_penalty_scored_3
-,LAG(penalty_scored,4) OVER (PARTITION BY team_id ORDER BY date) AS lag_penalty_scored_4
-,LAG(penalty_missed,1) OVER (PARTITION BY team_id ORDER BY date) AS lag_penalty_missed_1
-,LAG(penalty_missed,2) OVER (PARTITION BY team_id ORDER BY date) AS lag_penalty_missed_2
-,LAG(penalty_missed,3) OVER (PARTITION BY team_id ORDER BY date) AS lag_penalty_missed_3
-,LAG(penalty_missed,4) OVER (PARTITION BY team_id ORDER BY date) AS lag_penalty_missed_4
-,LAG(penalty_saved,1) OVER (PARTITION BY team_id ORDER BY date) AS lag_penalty_saved_1
-,LAG(penalty_saved,2) OVER (PARTITION BY team_id ORDER BY date) AS lag_penalty_saved_2
-,LAG(penalty_saved,3) OVER (PARTITION BY team_id ORDER BY date) AS lag_penalty_saved_3
-,LAG(penalty_saved,4) OVER (PARTITION BY team_id ORDER BY date) AS lag_penalty_saved_4
+,LAG(date,1) OVER w1 AS date_1
+,LAG(date,2) OVER w1 AS date_2
+,LAG(date,3) OVER w1 AS date_3
+,LAG(date,4) OVER w1 AS date_4
+,LAG(goals,1) OVER w1 AS lag_goals_1
+,LAG(goals,2) OVER w1 AS lag_goals_2
+,LAG(goals,3) OVER w1 AS lag_goals_3
+,LAG(goals,4) OVER w1 AS lag_goals_4
+,LAG(is_winner,1) OVER w1 AS lag_is_winner_1
+,LAG(is_winner,2) OVER w1 AS lag_is_winner_2
+,LAG(is_winner,3) OVER w1 AS lag_is_winner_3
+,LAG(is_winner,4) OVER w1 AS lag_is_winner_4
+,LAG(is_home,1) OVER w1 AS lag_is_home_1
+,LAG(is_home,2) OVER w1 AS lag_is_home_2
+,LAG(is_home,3) OVER w1 AS lag_is_home_3
+,LAG(is_home,4) OVER w1 AS lag_is_home_4
+,LAG(shots_on_goal,1) OVER w1 AS lag_shots_on_goal_1
+,LAG(shots_on_goal,2) OVER w1 AS lag_shots_on_goal_2
+,LAG(shots_on_goal,3) OVER w1 AS lag_shots_on_goal_3
+,LAG(shots_on_goal,4) OVER w1 AS lag_shots_on_goal_4
+,LAG(shots_off_goal,1) OVER w1 AS lag_shots_off_goal_1
+,LAG(shots_off_goal,2) OVER w1 AS lag_shots_off_goal_2
+,LAG(shots_off_goal,3) OVER w1 AS lag_shots_off_goal_3
+,LAG(shots_off_goal,4) OVER w1 AS lag_shots_off_goal_4
+,LAG(total_shots,1) OVER w1 AS lag_total_shots_1
+,LAG(total_shots,2) OVER w1 AS lag_total_shots_2
+,LAG(total_shots,3) OVER w1 AS lag_total_shots_3
+,LAG(total_shots,4) OVER w1 AS lag_total_shots_4
+,LAG(blocked_shots,1) OVER w1 AS lag_blocked_shots_1
+,LAG(blocked_shots,2) OVER w1 AS lag_blocked_shots_2
+,LAG(blocked_shots,3) OVER w1 AS lag_blocked_shots_3
+,LAG(blocked_shots,4) OVER w1 AS lag_blocked_shots_4
+,LAG(shots_insidebox,1) OVER w1 AS lag_shots_insidebox_1
+,LAG(shots_insidebox,2) OVER w1 AS lag_shots_insidebox_2
+,LAG(shots_insidebox,3) OVER w1 AS lag_shots_insidebox_3
+,LAG(shots_insidebox,4) OVER w1 AS lag_shots_insidebox_4
+,LAG(shots_outsidebox,1) OVER w1 AS lag_shots_outsidebox_1
+,LAG(shots_outsidebox,2) OVER w1 AS lag_shots_outsidebox_2
+,LAG(shots_outsidebox,3) OVER w1 AS lag_shots_outsidebox_3
+,LAG(shots_outsidebox,4) OVER w1 AS lag_shots_outsidebox_4
+,LAG(fouls,1) OVER w1 AS lag_fouls_1
+,LAG(fouls,2) OVER w1 AS lag_fouls_2
+,LAG(fouls,3) OVER w1 AS lag_fouls_3
+,LAG(fouls,4) OVER w1 AS lag_fouls_4
+,LAG(corner_kicks,1) OVER w1 AS lag_corner_kicks_1
+,LAG(corner_kicks,2) OVER w1 AS lag_corner_kicks_2
+,LAG(corner_kicks,3) OVER w1 AS lag_corner_kicks_3
+,LAG(corner_kicks,4) OVER w1 AS lag_corner_kicks_4
+,LAG(offsides,1) OVER w1 AS lag_offsides_1
+,LAG(offsides,2) OVER w1 AS lag_offsides_2
+,LAG(offsides,3) OVER w1 AS lag_offsides_3
+,LAG(offsides,4) OVER w1 AS lag_offsides_4
+,LAG(ball_possession,1) OVER w1 AS lag_ball_possession_1
+,LAG(ball_possession,2) OVER w1 AS lag_ball_possession_2
+,LAG(ball_possession,3) OVER w1 AS lag_ball_possession_3
+,LAG(ball_possession,4) OVER w1 AS lag_ball_possession_4
+,LAG(yellow_cards,1) OVER w1 AS lag_yellow_cards_1
+,LAG(yellow_cards,2) OVER w1 AS lag_yellow_cards_2
+,LAG(yellow_cards,3) OVER w1 AS lag_yellow_cards_3
+,LAG(yellow_cards,4) OVER w1 AS lag_yellow_cards_4
+,LAG(red_cards,1) OVER w1 AS lag_red_cards_1
+,LAG(red_cards,2) OVER w1 AS lag_red_cards_2
+,LAG(red_cards,3) OVER w1 AS lag_red_cards_3
+,LAG(red_cards,4) OVER w1 AS lag_red_cards_4
+,LAG(goalkeeper_saves,1) OVER w1 AS lag_goalkeeper_saves_1
+,LAG(goalkeeper_saves,2) OVER w1 AS lag_goalkeeper_saves_2
+,LAG(goalkeeper_saves,3) OVER w1 AS lag_goalkeeper_saves_3
+,LAG(goalkeeper_saves,4) OVER w1 AS lag_goalkeeper_saves_4
+,LAG(total_passes,1) OVER w1 AS lag_total_passes_1
+,LAG(total_passes,2) OVER w1 AS lag_total_passes_2
+,LAG(total_passes,3) OVER w1 AS lag_total_passes_3
+,LAG(total_passes,4) OVER w1 AS lag_total_passes_4
+,LAG(passes_accurate,1) OVER w1 AS lag_passes_accurate_1
+,LAG(passes_accurate,2) OVER w1 AS lag_passes_accurate_2
+,LAG(passes_accurate,3) OVER w1 AS lag_passes_accurate_3
+,LAG(passes_accurate,4) OVER w1 AS lag_passes_accurate_4
+,LAG(passes_perc,1) OVER w1 AS lag_passes_perc_1
+,LAG(passes_perc,2) OVER w1 AS lag_passes_perc_2
+,LAG(passes_perc,3) OVER w1 AS lag_passes_perc_3
+,LAG(passes_perc,4) OVER w1 AS lag_passes_perc_4
+,LAG(goals_prevented,1) OVER w1 AS lag_goals_prevented_1
+,LAG(goals_prevented,2) OVER w1 AS lag_goals_prevented_2
+,LAG(goals_prevented,3) OVER w1 AS lag_goals_prevented_3
+,LAG(goals_prevented,4) OVER w1 AS lag_goals_prevented_4
+,LAG(card_reviewed,1) OVER w1 AS lag_card_reviewed_1
+,LAG(card_reviewed,2) OVER w1 AS lag_card_reviewed_2
+,LAG(card_reviewed,3) OVER w1 AS lag_card_reviewed_3
+,LAG(card_reviewed,4) OVER w1 AS lag_card_reviewed_4
+,LAG(card_upgrade,1) OVER w1 AS lag_card_upgrade_1
+,LAG(card_upgrade,2) OVER w1 AS lag_card_upgrade_2
+,LAG(card_upgrade,3) OVER w1 AS lag_card_upgrade_3
+,LAG(card_upgrade,4) OVER w1 AS lag_card_upgrade_4
+,LAG(goal_cancelled,1) OVER w1 AS lag_goal_cancelled_1
+,LAG(goal_cancelled,2) OVER w1 AS lag_goal_cancelled_2
+,LAG(goal_cancelled,3) OVER w1 AS lag_goal_cancelled_3
+,LAG(goal_cancelled,4) OVER w1 AS lag_goal_cancelled_4
+,LAG(goal_confirmed,1) OVER w1 AS lag_goal_confirmed_1
+,LAG(goal_confirmed,2) OVER w1 AS lag_goal_confirmed_2
+,LAG(goal_confirmed,3) OVER w1 AS lag_goal_confirmed_3
+,LAG(goal_confirmed,4) OVER w1 AS lag_goal_confirmed_4
+,LAG(goal_disallowed,1) OVER w1 AS lag_goal_disallowed_1
+,LAG(goal_disallowed,2) OVER w1 AS lag_goal_disallowed_2
+,LAG(goal_disallowed,3) OVER w1 AS lag_goal_disallowed_3
+,LAG(goal_disallowed,4) OVER w1 AS lag_goal_disallowed_4
+,LAG(goal_disallowed_foul,1) OVER w1 AS lag_goal_disallowed_foul_1
+,LAG(goal_disallowed_foul,2) OVER w1 AS lag_goal_disallowed_foul_2
+,LAG(goal_disallowed_foul,3) OVER w1 AS lag_goal_disallowed_foul_3
+,LAG(goal_disallowed_foul,4) OVER w1 AS lag_goal_disallowed_foul_4
+,LAG(goal_disallowed_handball,1) OVER w1 AS lag_goal_disallowed_handball_1
+,LAG(goal_disallowed_handball,2) OVER w1 AS lag_goal_disallowed_handball_2
+,LAG(goal_disallowed_handball,3) OVER w1 AS lag_goal_disallowed_handball_3
+,LAG(goal_disallowed_handball,4) OVER w1 AS lag_goal_disallowed_handball_4
+,LAG(goal_disallowed_offside,1) OVER w1 AS lag_goal_disallowed_offside_1
+,LAG(goal_disallowed_offside,2) OVER w1 AS lag_goal_disallowed_offside_2
+,LAG(goal_disallowed_offside,3) OVER w1 AS lag_goal_disallowed_offside_3
+,LAG(goal_disallowed_offside,4) OVER w1 AS lag_goal_disallowed_offside_4
+,LAG(missed_penalty,1) OVER w1 AS lag_missed_penalty_1
+,LAG(missed_penalty,2) OVER w1 AS lag_missed_penalty_2
+,LAG(missed_penalty,3) OVER w1 AS lag_missed_penalty_3
+,LAG(missed_penalty,4) OVER w1 AS lag_missed_penalty_4
+,LAG(normal_goal,1) OVER w1 AS lag_normal_goal_1
+,LAG(normal_goal,2) OVER w1 AS lag_normal_goal_2
+,LAG(normal_goal,3) OVER w1 AS lag_normal_goal_3
+,LAG(normal_goal,4) OVER w1 AS lag_normal_goal_4
+,LAG(own_goal,1) OVER w1 AS lag_own_goal_1
+,LAG(own_goal,2) OVER w1 AS lag_own_goal_2
+,LAG(own_goal,3) OVER w1 AS lag_own_goal_3
+,LAG(own_goal,4) OVER w1 AS lag_own_goal_4
+,LAG(penalty,1) OVER w1 AS lag_penalty_1
+,LAG(penalty,2) OVER w1 AS lag_penalty_2
+,LAG(penalty,3) OVER w1 AS lag_penalty_3
+,LAG(penalty,4) OVER w1 AS lag_penalty_4
+,LAG(penalty_awarded,1) OVER w1 AS lag_penalty_awarded_1
+,LAG(penalty_awarded,2) OVER w1 AS lag_penalty_awarded_2
+,LAG(penalty_awarded,3) OVER w1 AS lag_penalty_awarded_3
+,LAG(penalty_awarded,4) OVER w1 AS lag_penalty_awarded_4
+,LAG(penalty_cancelled,1) OVER w1 AS lag_penalty_cancelled_1
+,LAG(penalty_cancelled,2) OVER w1 AS lag_penalty_cancelled_2
+,LAG(penalty_cancelled,3) OVER w1 AS lag_penalty_cancelled_3
+,LAG(penalty_cancelled,4) OVER w1 AS lag_penalty_cancelled_4
+,LAG(penalty_confirmed,1) OVER w1 AS lag_penalty_confirmed_1
+,LAG(penalty_confirmed,2) OVER w1 AS lag_penalty_confirmed_2
+,LAG(penalty_confirmed,3) OVER w1 AS lag_penalty_confirmed_3
+,LAG(penalty_confirmed,4) OVER w1 AS lag_penalty_confirmed_4
+,LAG(red_card,1) OVER w1 AS lag_red_card_1
+,LAG(red_card,2) OVER w1 AS lag_red_card_2
+,LAG(red_card,3) OVER w1 AS lag_red_card_3
+,LAG(red_card,4) OVER w1 AS lag_red_card_4
+,LAG(red_card_cancelled,1) OVER w1 AS lag_red_card_cancelled_1
+,LAG(red_card_cancelled,2) OVER w1 AS lag_red_card_cancelled_2
+,LAG(red_card_cancelled,3) OVER w1 AS lag_red_card_cancelled_3
+,LAG(red_card_cancelled,4) OVER w1 AS lag_red_card_cancelled_4
+,LAG(substitution_1,1) OVER w1 AS lag_substitution_1_1
+,LAG(substitution_1,2) OVER w1 AS lag_substitution_1_2
+,LAG(substitution_1,3) OVER w1 AS lag_substitution_1_3
+,LAG(substitution_1,4) OVER w1 AS lag_substitution_1_4
+,LAG(substitution_10,1) OVER w1 AS lag_substitution_10_1
+,LAG(substitution_10,2) OVER w1 AS lag_substitution_10_2
+,LAG(substitution_10,3) OVER w1 AS lag_substitution_10_3
+,LAG(substitution_10,4) OVER w1 AS lag_substitution_10_4
+,LAG(substitution_11,1) OVER w1 AS lag_substitution_11_1
+,LAG(substitution_11,2) OVER w1 AS lag_substitution_11_2
+,LAG(substitution_11,3) OVER w1 AS lag_substitution_11_3
+,LAG(substitution_11,4) OVER w1 AS lag_substitution_11_4
+,LAG(substitution_12,1) OVER w1 AS lag_substitution_12_1
+,LAG(substitution_12,2) OVER w1 AS lag_substitution_12_2
+,LAG(substitution_12,3) OVER w1 AS lag_substitution_12_3
+,LAG(substitution_12,4) OVER w1 AS lag_substitution_12_4
+,LAG(substitution_13,1) OVER w1 AS lag_substitution_13_1
+,LAG(substitution_13,2) OVER w1 AS lag_substitution_13_2
+,LAG(substitution_13,3) OVER w1 AS lag_substitution_13_3
+,LAG(substitution_13,4) OVER w1 AS lag_substitution_13_4
+,LAG(substitution_14,1) OVER w1 AS lag_substitution_14_1
+,LAG(substitution_14,2) OVER w1 AS lag_substitution_14_2
+,LAG(substitution_14,3) OVER w1 AS lag_substitution_14_3
+,LAG(substitution_14,4) OVER w1 AS lag_substitution_14_4
+,LAG(substitution_15,1) OVER w1 AS lag_substitution_15_1
+,LAG(substitution_15,2) OVER w1 AS lag_substitution_15_2
+,LAG(substitution_15,3) OVER w1 AS lag_substitution_15_3
+,LAG(substitution_15,4) OVER w1 AS lag_substitution_15_4
+,LAG(substitution_16,1) OVER w1 AS lag_substitution_16_1
+,LAG(substitution_16,2) OVER w1 AS lag_substitution_16_2
+,LAG(substitution_16,3) OVER w1 AS lag_substitution_16_3
+,LAG(substitution_16,4) OVER w1 AS lag_substitution_16_4
+,LAG(substitution_17,1) OVER w1 AS lag_substitution_17_1
+,LAG(substitution_17,2) OVER w1 AS lag_substitution_17_2
+,LAG(substitution_17,3) OVER w1 AS lag_substitution_17_3
+,LAG(substitution_17,4) OVER w1 AS lag_substitution_17_4
+,LAG(substitution_18,1) OVER w1 AS lag_substitution_18_1
+,LAG(substitution_18,2) OVER w1 AS lag_substitution_18_2
+,LAG(substitution_18,3) OVER w1 AS lag_substitution_18_3
+,LAG(substitution_18,4) OVER w1 AS lag_substitution_18_4
+,LAG(substitution_2,1) OVER w1 AS lag_substitution_2_1
+,LAG(substitution_2,2) OVER w1 AS lag_substitution_2_2
+,LAG(substitution_2,3) OVER w1 AS lag_substitution_2_3
+,LAG(substitution_2,4) OVER w1 AS lag_substitution_2_4
+,LAG(substitution_3,1) OVER w1 AS lag_substitution_3_1
+,LAG(substitution_3,2) OVER w1 AS lag_substitution_3_2
+,LAG(substitution_3,3) OVER w1 AS lag_substitution_3_3
+,LAG(substitution_3,4) OVER w1 AS lag_substitution_3_4
+,LAG(substitution_4,1) OVER w1 AS lag_substitution_4_1
+,LAG(substitution_4,2) OVER w1 AS lag_substitution_4_2
+,LAG(substitution_4,3) OVER w1 AS lag_substitution_4_3
+,LAG(substitution_4,4) OVER w1 AS lag_substitution_4_4
+,LAG(substitution_5,1) OVER w1 AS lag_substitution_5_1
+,LAG(substitution_5,2) OVER w1 AS lag_substitution_5_2
+,LAG(substitution_5,3) OVER w1 AS lag_substitution_5_3
+,LAG(substitution_5,4) OVER w1 AS lag_substitution_5_4
+,LAG(substitution_6,1) OVER w1 AS lag_substitution_6_1
+,LAG(substitution_6,2) OVER w1 AS lag_substitution_6_2
+,LAG(substitution_6,3) OVER w1 AS lag_substitution_6_3
+,LAG(substitution_6,4) OVER w1 AS lag_substitution_6_4
+,LAG(substitution_7,1) OVER w1 AS lag_substitution_7_1
+,LAG(substitution_7,2) OVER w1 AS lag_substitution_7_2
+,LAG(substitution_7,3) OVER w1 AS lag_substitution_7_3
+,LAG(substitution_7,4) OVER w1 AS lag_substitution_7_4
+,LAG(substitution_8,1) OVER w1 AS lag_substitution_8_1
+,LAG(substitution_8,2) OVER w1 AS lag_substitution_8_2
+,LAG(substitution_8,3) OVER w1 AS lag_substitution_8_3
+,LAG(substitution_8,4) OVER w1 AS lag_substitution_8_4
+,LAG(substitution_9,1) OVER w1 AS lag_substitution_9_1
+,LAG(substitution_9,2) OVER w1 AS lag_substitution_9_2
+,LAG(substitution_9,3) OVER w1 AS lag_substitution_9_3
+,LAG(substitution_9,4) OVER w1 AS lag_substitution_9_4
+,LAG(yellow_card,1) OVER w1 AS lag_yellow_card_1
+,LAG(yellow_card,2) OVER w1 AS lag_yellow_card_2
+,LAG(yellow_card,3) OVER w1 AS lag_yellow_card_3
+,LAG(yellow_card,4) OVER w1 AS lag_yellow_card_4
+,LAG(games_minutes,1) OVER w1 AS lag_games_minutes_1
+,LAG(games_minutes,2) OVER w1 AS lag_games_minutes_2
+,LAG(games_minutes,3) OVER w1 AS lag_games_minutes_3
+,LAG(games_minutes,4) OVER w1 AS lag_games_minutes_4
+,LAG(shots_total,1) OVER w1 AS lag_shots_total_1
+,LAG(shots_total,2) OVER w1 AS lag_shots_total_2
+,LAG(shots_total,3) OVER w1 AS lag_shots_total_3
+,LAG(shots_total,4) OVER w1 AS lag_shots_total_4
+,LAG(shots_on,1) OVER w1 AS lag_shots_on_1
+,LAG(shots_on,2) OVER w1 AS lag_shots_on_2
+,LAG(shots_on,3) OVER w1 AS lag_shots_on_3
+,LAG(shots_on,4) OVER w1 AS lag_shots_on_4
+,LAG(goals_total,1) OVER w1 AS lag_goals_total_1
+,LAG(goals_total,2) OVER w1 AS lag_goals_total_2
+,LAG(goals_total,3) OVER w1 AS lag_goals_total_3
+,LAG(goals_total,4) OVER w1 AS lag_goals_total_4
+,LAG(goals_conceded,1) OVER w1 AS lag_goals_conceded_1
+,LAG(goals_conceded,2) OVER w1 AS lag_goals_conceded_2
+,LAG(goals_conceded,3) OVER w1 AS lag_goals_conceded_3
+,LAG(goals_conceded,4) OVER w1 AS lag_goals_conceded_4
+,LAG(goals_assists,1) OVER w1 AS lag_goals_assists_1
+,LAG(goals_assists,2) OVER w1 AS lag_goals_assists_2
+,LAG(goals_assists,3) OVER w1 AS lag_goals_assists_3
+,LAG(goals_assists,4) OVER w1 AS lag_goals_assists_4
+,LAG(goals_saves,1) OVER w1 AS lag_goals_saves_1
+,LAG(goals_saves,2) OVER w1 AS lag_goals_saves_2
+,LAG(goals_saves,3) OVER w1 AS lag_goals_saves_3
+,LAG(goals_saves,4) OVER w1 AS lag_goals_saves_4
+,LAG(passes_total,1) OVER w1 AS lag_passes_total_1
+,LAG(passes_total,2) OVER w1 AS lag_passes_total_2
+,LAG(passes_total,3) OVER w1 AS lag_passes_total_3
+,LAG(passes_total,4) OVER w1 AS lag_passes_total_4
+,LAG(passes_key,1) OVER w1 AS lag_passes_key_1
+,LAG(passes_key,2) OVER w1 AS lag_passes_key_2
+,LAG(passes_key,3) OVER w1 AS lag_passes_key_3
+,LAG(passes_key,4) OVER w1 AS lag_passes_key_4
+,LAG(passes_accuracy,1) OVER w1 AS lag_passes_accuracy_1
+,LAG(passes_accuracy,2) OVER w1 AS lag_passes_accuracy_2
+,LAG(passes_accuracy,3) OVER w1 AS lag_passes_accuracy_3
+,LAG(passes_accuracy,4) OVER w1 AS lag_passes_accuracy_4
+,LAG(tackles_total,1) OVER w1 AS lag_tackles_total_1
+,LAG(tackles_total,2) OVER w1 AS lag_tackles_total_2
+,LAG(tackles_total,3) OVER w1 AS lag_tackles_total_3
+,LAG(tackles_total,4) OVER w1 AS lag_tackles_total_4
+,LAG(tackles_blocks,1) OVER w1 AS lag_tackles_blocks_1
+,LAG(tackles_blocks,2) OVER w1 AS lag_tackles_blocks_2
+,LAG(tackles_blocks,3) OVER w1 AS lag_tackles_blocks_3
+,LAG(tackles_blocks,4) OVER w1 AS lag_tackles_blocks_4
+,LAG(tackles_interceptions,1) OVER w1 AS lag_tackles_interceptions_1
+,LAG(tackles_interceptions,2) OVER w1 AS lag_tackles_interceptions_2
+,LAG(tackles_interceptions,3) OVER w1 AS lag_tackles_interceptions_3
+,LAG(tackles_interceptions,4) OVER w1 AS lag_tackles_interceptions_4
+,LAG(duels_total,1) OVER w1 AS lag_duels_total_1
+,LAG(duels_total,2) OVER w1 AS lag_duels_total_2
+,LAG(duels_total,3) OVER w1 AS lag_duels_total_3
+,LAG(duels_total,4) OVER w1 AS lag_duels_total_4
+,LAG(duels_won,1) OVER w1 AS lag_duels_won_1
+,LAG(duels_won,2) OVER w1 AS lag_duels_won_2
+,LAG(duels_won,3) OVER w1 AS lag_duels_won_3
+,LAG(duels_won,4) OVER w1 AS lag_duels_won_4
+,LAG(dribbles_attempts,1) OVER w1 AS lag_dribbles_attempts_1
+,LAG(dribbles_attempts,2) OVER w1 AS lag_dribbles_attempts_2
+,LAG(dribbles_attempts,3) OVER w1 AS lag_dribbles_attempts_3
+,LAG(dribbles_attempts,4) OVER w1 AS lag_dribbles_attempts_4
+,LAG(dribbles_success,1) OVER w1 AS lag_dribbles_success_1
+,LAG(dribbles_success,2) OVER w1 AS lag_dribbles_success_2
+,LAG(dribbles_success,3) OVER w1 AS lag_dribbles_success_3
+,LAG(dribbles_success,4) OVER w1 AS lag_dribbles_success_4
+,LAG(dribbles_past,1) OVER w1 AS lag_dribbles_past_1
+,LAG(dribbles_past,2) OVER w1 AS lag_dribbles_past_2
+,LAG(dribbles_past,3) OVER w1 AS lag_dribbles_past_3
+,LAG(dribbles_past,4) OVER w1 AS lag_dribbles_past_4
+,LAG(fouls_drawn,1) OVER w1 AS lag_fouls_drawn_1
+,LAG(fouls_drawn,2) OVER w1 AS lag_fouls_drawn_2
+,LAG(fouls_drawn,3) OVER w1 AS lag_fouls_drawn_3
+,LAG(fouls_drawn,4) OVER w1 AS lag_fouls_drawn_4
+,LAG(fouls_committed,1) OVER w1 AS lag_fouls_committed_1
+,LAG(fouls_committed,2) OVER w1 AS lag_fouls_committed_2
+,LAG(fouls_committed,3) OVER w1 AS lag_fouls_committed_3
+,LAG(fouls_committed,4) OVER w1 AS lag_fouls_committed_4
+,LAG(cards_yellow,1) OVER w1 AS lag_cards_yellow_1
+,LAG(cards_yellow,2) OVER w1 AS lag_cards_yellow_2
+,LAG(cards_yellow,3) OVER w1 AS lag_cards_yellow_3
+,LAG(cards_yellow,4) OVER w1 AS lag_cards_yellow_4
+,LAG(cards_red,1) OVER w1 AS lag_cards_red_1
+,LAG(cards_red,2) OVER w1 AS lag_cards_red_2
+,LAG(cards_red,3) OVER w1 AS lag_cards_red_3
+,LAG(cards_red,4) OVER w1 AS lag_cards_red_4
+,LAG(penalty_won,1) OVER w1 AS lag_penalty_won_1
+,LAG(penalty_won,2) OVER w1 AS lag_penalty_won_2
+,LAG(penalty_won,3) OVER w1 AS lag_penalty_won_3
+,LAG(penalty_won,4) OVER w1 AS lag_penalty_won_4
+,LAG(penalty_commited,1) OVER w1 AS lag_penalty_commited_1
+,LAG(penalty_commited,2) OVER w1 AS lag_penalty_commited_2
+,LAG(penalty_commited,3) OVER w1 AS lag_penalty_commited_3
+,LAG(penalty_commited,4) OVER w1 AS lag_penalty_commited_4
+,LAG(penalty_scored,1) OVER w1 AS lag_penalty_scored_1
+,LAG(penalty_scored,2) OVER w1 AS lag_penalty_scored_2
+,LAG(penalty_scored,3) OVER w1 AS lag_penalty_scored_3
+,LAG(penalty_scored,4) OVER w1 AS lag_penalty_scored_4
+,LAG(penalty_missed,1) OVER w1 AS lag_penalty_missed_1
+,LAG(penalty_missed,2) OVER w1 AS lag_penalty_missed_2
+,LAG(penalty_missed,3) OVER w1 AS lag_penalty_missed_3
+,LAG(penalty_missed,4) OVER w1 AS lag_penalty_missed_4
+,LAG(penalty_saved,1) OVER w1 AS lag_penalty_saved_1
+,LAG(penalty_saved,2) OVER w1 AS lag_penalty_saved_2
+,LAG(penalty_saved,3) OVER w1 AS lag_penalty_saved_3
+,LAG(penalty_saved,4) OVER w1 AS lag_penalty_saved_4
 FROM
 transformed_prod_match_summary t1
+WINDOW
+        w1 AS (PARTITION BY team_id ORDER BY date, fixture_id)
 )
 SELECT t1.*
 FROM lagged_data t1;
@@ -986,16 +988,16 @@ FROM metrics;
 
 DROP TABLE IF EXISTS transformed_prod_match_summary_sum_avg_max_min;
 CREATE TEMP TABLE transformed_prod_match_summary_sum_avg_max_min AS
-WITH numbered_matches AS (
-    SELECT
-        t1.*,
-        ROW_NUMBER() OVER (
-            PARTITION BY team_id
-            ORDER BY date, fixture_id
-        )::real AS match_number
-    FROM transformed_prod_match_summary t1
-),
-metrics AS (
+-- WITH numbered_matches AS (
+--     SELECT
+--         t1.*,
+--         ROW_NUMBER() OVER (
+--             PARTITION BY team_id, league_season
+--             ORDER BY date, fixture_id
+--         )::real AS match_number
+--     FROM transformed_prod_match_summary t1
+-- ),
+WITH metrics AS (
     SELECT
         fixture_id
         ,date
@@ -1650,7 +1652,7 @@ metrics AS (
         ,MAX(penalty_saved) OVER w6 AS max_penalty_saved_6
         ,MIN(penalty_saved) OVER w6 AS min_penalty_saved_6
 
-    FROM numbered_matches t1
+    FROM transformed_prod_match_summary t1
 
     WINDOW
         w3 AS (
@@ -2425,22 +2427,16 @@ LEFT JOIN transformed_prod_match_summary_sum_avg_max_min t4 ON t1.fixture_id = t
 
 DROP TABLE IF EXISTS prod_match_summary_home_away_teams_id;
 CREATE TEMP TABLE prod_match_summary_home_away_teams_id AS
-WITH matches_numbered AS
-(
-    SELECT
-    t1.*
-    , ROW_NUMBER() OVER (PARTITION BY t1.fixture_id) AS rn
-    FROM transformed_prod_match_summary t1
-), matches_numbered_part_1 AS
+WITH  matches_numbered_part_1 AS
 (
     SELECT *
-    FROM matches_numbered
-    WHERE rn = 1
+    FROM transformed_prod_match_summary
+    WHERE is_home = 1
 ), matches_numbered_part_2 AS
 (
     SELECT *
-    FROM matches_numbered
-    WHERE rn = 2
+    FROM transformed_prod_match_summary
+    WHERE is_home = 0
 )
 SELECT
 t1.fixture_id
@@ -2450,8 +2446,15 @@ t1.fixture_id
 ,t1.status_elapsed
 ,t1.status_extra
 ,t1.league_id
+,t1.league_season
 ,t1.team_id home_team_id
 ,t2.team_id away_team_id
+, 
+    CASE
+        WHEN t1.is_winner = TRUE THEN 1
+        WHEN t2.is_winner = TRUE THEN 2
+        WHEN t1.is_winner = FALSE AND t2.is_winner = FALSE THEN 0
+    END target
 FROM matches_numbered_part_1 t1
 INNER JOIN matches_numbered_part_2 t2 ON t1.fixture_id = t2.fixture_id
 ;

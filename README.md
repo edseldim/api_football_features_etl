@@ -48,8 +48,6 @@ Historical information will be constructed from each team's previous matches $(t
 
 **Home/away asymmetry.** Home and away teams will be represented separately. Swapping the teams therefore creates a different observation, and the model is not required to produce symmetric probabilities after a swap.
 
-If features are calculated using a fixed lookback period rather than a fixed number of previous matches, the minimum lookback window should be approximately 7×t days, where t is the desired number of historical matches. The 7-day interval reflects the typical scheduling frequency of league matches and helps ensure that the window captures approximately t previous league fixtures.
-
 ## Imputation Logic
 
 Feature computations are allowed to cross season boundaries because matches from previous seasons are considered relevant historical information. For each match, these computations must still use only information that was available before kickoff.

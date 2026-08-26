@@ -24,12 +24,6 @@ Objective narrative rules
     - stoppage-time decisive goal: final lead obtained at 90+;
     - comeback: the eventual winner trailed after a valid goal;
     - multiple lead changes: leadership switched at least twice.
-
-Event-derived flags are NULL when recorded goals do not reconcile with the
-final score. Raw missing statistics remain NULL rather than being imputed.
-
-Construction is deliberately split into small, inspectable temporary tables.
-No query below uses more than five CTEs.
 */
 
 
@@ -97,6 +91,7 @@ SELECT
         WHEN ABS(m.home_goals - m.away_goals) = 2 THEN 'two_goal_win'
         WHEN ABS(m.home_goals - m.away_goals) >= 3 THEN 'three_plus_goal_win'
     END AS scoreline_category,
+    /* Validate that the provider's winner flags agree with the final score. */
     CASE
         WHEN m.home_goals IS NULL OR m.away_goals IS NULL THEN FALSE
         WHEN m.home_goals > m.away_goals
@@ -106,14 +101,17 @@ SELECT
         ELSE COALESCE(m.home_winner, FALSE) IS FALSE
              AND COALESCE(m.away_winner, FALSE) IS FALSE
     END AS winner_flags_match_score,
-    COALESCE(m.status_short IN ('FT', 'AET', 'PEN'), FALSE)
+    COALESCE(UPPER(TRIM(m.status_short)) IN ('FT', 'AET', 'PEN'), FALSE)
         AS is_normally_completed,
-    COALESCE(m.status_short IN ('AWD', 'WO'), FALSE)
+    COALESCE(UPPER(TRIM(m.status_short)) IN ('AWD', 'WO'), FALSE)
         AS is_administrative_result,
-    COALESCE(m.status_short NOT IN ('FT', 'AET', 'PEN', 'AWD', 'WO'), TRUE)
+    COALESCE(
+        UPPER(TRIM(m.status_short)) NOT IN ('FT', 'AET', 'PEN', 'AWD', 'WO'),
+        TRUE
+    )
         AS is_not_completed,
     (
-        COALESCE(m.status_short IN ('FT', 'AET', 'PEN'), FALSE)
+        COALESCE(UPPER(TRIM(m.status_short)) IN ('FT', 'AET', 'PEN'), FALSE)
         AND m.home_goals IS NOT NULL
         AND m.away_goals IS NOT NULL
         AND CASE
@@ -131,7 +129,6 @@ WHERE m.league_id = 128;
 
 /*
 2. STATISTICS: raw home/away values and winner-minus-loser measures.
-One CTE converts the provider's long statistic table to one row per team.
 */
 CREATE TEMP TABLE wins_taxonomy_statistics AS
 WITH team_stats AS
@@ -236,7 +233,6 @@ INNER JOIN wins_taxonomy_matches m USING (fixture_id);
 
 /*
 4. GOAL SEQUENCE: one row per valid goal, including score and leader states.
-This query uses two CTEs.
 */
 CREATE TEMP TABLE wins_taxonomy_goal_sequence AS
 WITH valid_goals AS
@@ -260,6 +256,7 @@ scores_before_goal AS
         m.away_team_id,
         m.winner_team_id,
         m.loser_team_id,
+        -- copy previous score for each when a goal is scored
         COALESCE(SUM((g.team_id = m.home_team_id)::integer) OVER
         (
             PARTITION BY g.fixture_id ORDER BY g.goal_number
@@ -275,14 +272,17 @@ scores_before_goal AS
 )
 SELECT
     g.*,
+    -- for either team home or away score, the current score (or after) is the previous score plus 1 if the team scored (which is what the = is doing)
     g.home_score_before + (g.team_id = g.home_team_id)::integer
         AS home_score_after,
     g.away_score_before + (g.team_id = g.away_team_id)::integer
         AS away_score_after,
+    -- leader before is the team with the higher score before the goal, or null if tied
     CASE
         WHEN g.home_score_before > g.away_score_before THEN g.home_team_id
         WHEN g.away_score_before > g.home_score_before THEN g.away_team_id
     END AS leader_before,
+    -- leader after is the team with the higher score after the goal, or null if tied
     CASE
         WHEN g.home_score_before + (g.team_id = g.home_team_id)::integer
            > g.away_score_before + (g.team_id = g.away_team_id)::integer
@@ -296,7 +296,6 @@ FROM scores_before_goal g;
 
 /*
 5. NARRATIVES: reconciliation, narrative flags, circumstances, and review.
-This query uses four CTEs.
 */
 CREATE TEMP TABLE wins_taxonomy_narratives AS
 WITH goal_reconciliation AS
@@ -325,16 +324,16 @@ narrative_raw AS
         (
             CASE
                 WHEN m.winner_location = 'home'
-                    THEN g.home_score_after < g.away_score_after
+                    THEN g.home_score_after < g.away_score_after -- if home wins but it was behind at any point, then it trailed
                 WHEN m.winner_location = 'away'
-                    THEN g.away_score_after < g.home_score_after
+                    THEN g.away_score_after < g.home_score_after -- if away wins but it was behind at any point, then it trailed
                 ELSE FALSE
             END
         ) AS winner_trailed,
         COUNT(*) FILTER
         (
             WHERE g.leader_after IS NOT NULL
-              AND g.leader_after IS DISTINCT FROM g.leader_before
+              AND g.leader_after IS DISTINCT FROM g.leader_before -- count the number of times the leader changed, excluding score updates that did not change the leader (e.g., 1-0 to 2-0 or 2-0 to 2-1)
         ) AS lead_spell_count,
         MAX(g.goal_number) FILTER
         (
@@ -343,7 +342,7 @@ narrative_raw AS
                     AND g.home_score_before <= g.away_score_before)
                    OR (m.winner_location = 'away'
                        AND g.away_score_before <= g.home_score_before))
-        ) AS decisive_goal_number
+        ) AS decisive_goal_number -- yields the last goal number that put the eventual winner ahead of the loser, or null if the match was a draw
     FROM wins_taxonomy_matches m
     LEFT JOIN wins_taxonomy_goal_sequence g USING (fixture_id)
     GROUP BY m.fixture_id

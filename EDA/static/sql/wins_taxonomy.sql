@@ -310,7 +310,7 @@ WITH goal_reconciliation AS
         COUNT(g.goal_number) FILTER (WHERE g.team_id = m.home_team_id)
                 = m.home_goals
         AND COUNT(g.goal_number) FILTER (WHERE g.team_id = m.away_team_id)
-                = m.away_goals AS goal_events_match_score
+                = m.away_goals AS goal_events_match_score -- check how many do not match the final score
     FROM wins_taxonomy_matches m
     LEFT JOIN wins_taxonomy_goal_sequence g USING (fixture_id)
     GROUP BY m.fixture_id, m.home_goals, m.away_goals

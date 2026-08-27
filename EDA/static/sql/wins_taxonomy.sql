@@ -616,6 +616,8 @@ MODELLING IMPLICATIONS
 - Create historical match-path features: rates of establishing an early lead,
   retaining that lead, conceding late, winning late, and completing a comeback.
 
+- Create h2h features
+
 - Model validation should preserve the outcome and venue proportions and report
   performance separately for home wins, draws, and away wins.
 

@@ -124,7 +124,7 @@ SELECT
             END
     ) AS is_target_eligible
 FROM prod_match_summary m
-WHERE m.league_id = 128;
+WHERE m.league_id = 128 AND league_season <= 2024;
 
 
 /*
@@ -444,8 +444,24 @@ SELECT
     ROUND(100.0 * COUNT(*) / SUM(COUNT(*)) OVER (), 2) AS pct_all_matches
 FROM wins_taxonomy_matches
 WHERE is_target_eligible
-GROUP BY scoreline_category, outcome, winner_location
-ORDER BY scoreline_category, outcome, winner_location;
+GROUP BY 1,2,3
+ORDER BY pct_all_matches DESC;
+
+/*
+In argentinian football, scoring 1 goal has 50% odds (this comprises one_goal win for both home and away and a one-one draw)
+which reduces some bias because this is the most common case and there's not that big of a difference in the probabilities. So,
+a model would have a harder time to discern between them leading to finding relevant features.
+
+Actually, scoring 2 or 3 goals are a similar case which means that despite the fact that winning home has a higher probability,
+winning away or sharing points have nice representation anyway. So, in general there's imbalanced odds but within groups this "softens" a bit
+which could mean that features should be built around scoreline categories rather than venue.
+
+Finally, winning home stays the most common case, then comes drawing and then winning away:
+
+home 42%
+draw 30%
+away 27%
+*/
 
 
 /* 7. Narrative and circumstance prevalence by scoreline. */
@@ -469,7 +485,32 @@ FROM wins_taxonomy_matches m
 LEFT JOIN wins_taxonomy_narratives n USING (fixture_id)
 WHERE m.is_target_eligible
 GROUP BY m.scoreline_category
-ORDER BY m.scoreline_category;
+ORDER BY matches DESC;
+
+/*
+when winning by 1 goal lead, 33% of the matches are late wins.
+
+when winning by 1 goal lead, 25% of the matches maintain the lead from early on.
+when winning by 2 goal lead, 50% of the matches maintain the lead from early on.
+when winning by 3 goal lead, 50% of the teams maintain the lead from early on.
+
+when sharing points, 25% of the time red cards appeared
+when winning by 1 goal lead, 25% of the matches have a red card
+when winning by 2 goal lead, 33% of the matches have a red card
+when winning by 3 goal lead, 25% of the matches have a red card
+
+
+===============
+
+it seems that winning by a 1 goal lead could be the consequence of many different events which
+could be harder to predict
+
+winning by a 2 or 3 goal lead seem to be the result of a more controlled match and early lead which could be defined
+by h2h record, team quality, and other features
+
+red cards seem to be relatively common so adding features regarding past red and yellow cards could be useful
+
+*/
 
 
 /* 8. Scoreline statistics. */
@@ -495,6 +536,11 @@ WHERE m.is_target_eligible AND m.outcome <> 'draw'
 GROUP BY m.scoreline_category, m.winner_location
 ORDER BY m.scoreline_category, m.winner_location;
 
+/*
+When away teams win, they tend to have a bigger average shot conversion which means that they score with fewer shots. So, accuracy seems to
+be an important factor when winning away. This is also supported by the fact that winning away teams have less possession on average
+*/
+
 
 /* 9. Temporal stability and data availability. */
 SELECT
@@ -512,9 +558,13 @@ SELECT
 FROM wins_taxonomy_matches m
 LEFT JOIN wins_taxonomy_narratives n USING (fixture_id)
 LEFT JOIN wins_taxonomy_statistics s USING (fixture_id)
-WHERE m.is_target_eligible
+WHERE m.is_target_eligible AND calendar_year >= 2021
 GROUP BY m.calendar_year, m.scoreline_category
-ORDER BY m.calendar_year, m.scoreline_category;
+ORDER BY 2, 1 ASC;
+
+/*
+all goal types are relatively stable in train set
+*/
 
 
 /* 10. Records requiring validity, completion, or data-quality review. */

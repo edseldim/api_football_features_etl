@@ -448,15 +448,10 @@ GROUP BY 1,2,3
 ORDER BY pct_all_matches DESC;
 
 /*
-In argentinian football, scoring 1 goal has 50% odds (this comprises one_goal win for both home and away and a one-one draw)
-which reduces some bias because this is the most common case and there's not that big of a difference in the probabilities. So,
-a model would have a harder time to discern between them leading to finding relevant features.
+In argentinian football, winning with a 1 goal lead has 50% probability (this comprises one goal lead win for both home and away and a one-one draw)
+which makes it the most common case.
 
-Actually, scoring 2 or 3 goals are a similar case which means that despite the fact that winning home has a higher probability,
-winning away or sharing points have nice representation anyway. So, in general there's imbalanced odds but within groups this "softens" a bit
-which could mean that features should be built around scoreline categories rather than venue.
-
-Finally, winning home stays the most common case, then comes drawing and then winning away:
+Winning home stays the most common case, then comes drawing and then winning away:
 
 home 42%
 draw 30%
@@ -488,16 +483,16 @@ GROUP BY m.scoreline_category
 ORDER BY matches DESC;
 
 /*
-when winning by 1 goal lead, 33% of the matches are late wins.
+among the matches winning by 1 goal lead, 33% of the matches are late wins.
 
-when winning by 1 goal lead, 25% of the matches maintain the lead from early on.
-when winning by 2 goal lead, 50% of the matches maintain the lead from early on.
-when winning by 3 goal lead, 50% of the teams maintain the lead from early on.
+among the matches winning by 1 goal lead, 25% of the matches maintain the lead from early on.
+among the matches winning by 2 goal lead, 50% of the matches maintain the lead from early on.
+among the matches winning by 3 goal lead, 50% of the teams maintain the lead from early on.
 
-when sharing points, 25% of the time red cards appeared
-when winning by 1 goal lead, 25% of the matches have a red card
-when winning by 2 goal lead, 33% of the matches have a red card
-when winning by 3 goal lead, 25% of the matches have a red card
+among the matches sharing points, 25% of the matches have a red card
+among the matches winning by 1 goal lead, 25% of the matches have a red card
+among the matches winning by 2 goal lead, 33% of the matches have a red card
+among the matches winning by 3 goal lead, 25% of the matches have a red card
 
 
 ===============
@@ -505,10 +500,10 @@ when winning by 3 goal lead, 25% of the matches have a red card
 it seems that winning by a 1 goal lead could be the consequence of many different events which
 could be harder to predict
 
-winning by a 2 or 3 goal lead seem to be the result of a more controlled match and early lead which could be defined
+winning by a 2 or 3 goal lead seems to be the result of a more controlled match and early lead which could be defined
 by h2h record, team quality, and other features
 
-red cards seem to be relatively common so adding features regarding past red and yellow cards could be useful
+red cards seem to be relatively common so adding features representing teams that produce too many faults like amount of past red and yellow cards could be useful
 
 */
 
@@ -589,3 +584,44 @@ LEFT JOIN wins_taxonomy_narratives n USING (fixture_id)
 LEFT JOIN wins_taxonomy_statistics s USING (fixture_id)
 WHERE n.suggested_review_decision <> 'keep'
 ORDER BY m.date, m.fixture_id;
+
+
+/*
+SUMMARY
+-------------------------------------------------
+- Home wins lead at about 43%, followed by draws at 30% and away wins at 27%.
+  One-goal wins are the largest scoreline category at about 40%.
+
+- One-goal wins have varied paths: about 30% are decided late, while about 25%
+  establish and maintain the final lead early.
+
+- Early control increases with the winning margin, occurring in about 41% of
+  two-goal wins and 65% of three-plus-goal wins.
+
+- Red cards appear in about 27% of one-goal wins, one-quarter of wider wins,
+  and 22% of draws; their presence does not prove that they determined results.
+
+- Away winners finish more efficiently at every margin. Narrower away wins
+  use fewer shots and less possession, while large away wins also lead in both.
+
+MODELLING IMPLICATIONS
+---------------------------------------------------
+
+- Create rolling venue-specific form features: home/away win and draw rates,
+  goals for and against, goal difference, and opponent-adjusted team strength.
+
+- Create a rolling close-match profile: one-goal result rate, draw rate, and
+  frequency of scoring or conceding the decisive goal.
+
+- Create historical match-path features: rates of establishing an early lead,
+  retaining that lead, conceding late, winning late, and completing a comeback.
+
+- Model validation should preserve the outcome and venue proportions and report
+  performance separately for home wins, draws, and away wins.
+
+- The large and varied one-goal-win category should receive separate error and
+  calibration checks instead of being assessed only through overall accuracy.
+
+- Historical pre-match measures of shot conversion, possession-independent
+  performance, and away efficiency are relevant feature candidates.
+*/

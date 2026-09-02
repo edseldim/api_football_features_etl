@@ -7,6 +7,7 @@ DROP TABLE IF EXISTS wins_taxonomy_h2h_features;
 DROP TABLE IF EXISTS wins_taxonomy_venue_features;
 DROP TABLE IF EXISTS wins_taxonomy_team_form_features;
 DROP TABLE IF EXISTS wins_taxonomy_team_match;
+DROP TABLE IF EXISTS wins_taxonomy_match_level;
 DROP TABLE IF EXISTS wins_taxonomy_narratives;
 DROP TABLE IF EXISTS wins_taxonomy_goal_sequence;
 DROP TABLE IF EXISTS wins_taxonomy_events;
@@ -412,3 +413,458 @@ LEFT JOIN goal_reconciliation r USING (fixture_id)
 LEFT JOIN narrative_details n USING (fixture_id)
 LEFT JOIN event_circumstances e USING (fixture_id);
 
+
+/*
+6. MATCH-LEVEL TAXONOMY
+-----------------------
+One retrospective row per eligible match. This is an intermediate source for
+historical windows and must not be used as same-match model input.
+*/
+/* UNLOGGED so downstream EDA scripts can reuse it from another DB session. */
+CREATE UNLOGGED TABLE wins_taxonomy_match_level AS
+SELECT
+    m.fixture_id,
+    m.date,
+    m.league_id,
+    m.league_season,
+    m.league_round,
+    m.venue_id,
+    m.venue_name,
+    m.home_team_id,
+    m.away_team_id,
+    m.home_goals,
+    m.away_goals,
+    m.outcome,
+    m.winner_team_id,
+    m.loser_team_id,
+    m.scoreline_category,
+    n.goal_events_match_score,
+    n.is_comeback_win,
+    n.is_early_lead_established_and_maintained,
+    n.has_late_decisive_goal,
+    n.has_stoppage_time_decisive_goal,
+    n.has_multiple_lead_changes,
+    n.has_red_card,
+    n.has_early_red_card,
+    n.has_var_intervention,
+    n.has_disallowed_goal,
+    n.has_decisive_penalty,
+    n.has_decisive_own_goal,
+    s.home_shots_on_goal,
+    s.away_shots_on_goal,
+    s.home_total_shots,
+    s.away_total_shots,
+    s.home_ball_possession,
+    s.away_ball_possession,
+    s.home_red_cards,
+    s.away_red_cards,
+    s.home_yellow_cards,
+    s.away_yellow_cards,
+    s.home_expected_goals,
+    s.away_expected_goals
+FROM wins_taxonomy_matches m
+LEFT JOIN wins_taxonomy_narratives n USING (fixture_id)
+LEFT JOIN wins_taxonomy_statistics s USING (fixture_id)
+WHERE m.is_target_eligible;
+
+
+/* 7. TEAM PERSPECTIVE: two rows per match, one for each team. */
+/* UNLOGGED so downstream EDA scripts can reuse it from another DB session. */
+CREATE UNLOGGED TABLE wins_taxonomy_team_match AS
+WITH team_rows AS
+(
+    SELECT
+        m.*,
+        home_team_id AS team_id,
+        away_team_id AS opponent_team_id,
+        TRUE AS is_home,
+        home_goals AS goals_for,
+        away_goals AS goals_against,
+        home_shots_on_goal AS shots_on_goal_for,
+        away_shots_on_goal AS shots_on_goal_against,
+        home_total_shots AS total_shots_for,
+        away_total_shots AS total_shots_against,
+        home_ball_possession AS possession,
+        home_red_cards AS red_cards,
+        home_yellow_cards AS yellow_cards,
+        home_expected_goals AS xg_for,
+        away_expected_goals AS xg_against
+    FROM wins_taxonomy_match_level m
+
+    UNION ALL
+
+    SELECT
+        m.*,
+        away_team_id,
+        home_team_id,
+        FALSE,
+        away_goals,
+        home_goals,
+        away_shots_on_goal,
+        home_shots_on_goal,
+        away_total_shots,
+        home_total_shots,
+        away_ball_possession,
+        away_red_cards,
+        away_yellow_cards,
+        away_expected_goals,
+        home_expected_goals
+    FROM wins_taxonomy_match_level m
+)
+SELECT
+    fixture_id,
+    date,
+    league_id,
+    league_season,
+    team_id,
+    opponent_team_id,
+    is_home,
+    goals_for,
+    goals_against,
+    goals_for - goals_against AS goal_difference,
+    shots_on_goal_for,
+    shots_on_goal_against,
+    total_shots_for,
+    total_shots_against,
+    possession,
+    red_cards,
+    yellow_cards,
+    xg_for,
+    xg_against,
+    xg_for - xg_against AS xg_difference,
+    /* winner/loser ids are NULL for draws. COALESCE ensures draws contribute
+       won = 0 and lost = 0 instead of disappearing from rolling averages. */
+    COALESCE(team_id = winner_team_id, FALSE)::integer AS won,
+    COALESCE(team_id = loser_team_id, FALSE)::integer AS lost,
+    (outcome = 'draw')::integer AS drew,
+    (scoreline_category = 'one_goal_win')::integer AS one_goal_match,
+    goal_events_match_score,
+    CASE WHEN goal_events_match_score THEN
+        (team_id = winner_team_id AND is_comeback_win)::integer END
+        AS comeback_win,
+    CASE WHEN goal_events_match_score THEN
+        (team_id = loser_team_id AND is_comeback_win)::integer END
+        AS comeback_loss,
+    CASE WHEN goal_events_match_score THEN
+        (team_id = winner_team_id
+         AND is_early_lead_established_and_maintained)::integer END
+        AS early_permanent_lead_win,
+    CASE WHEN goal_events_match_score THEN
+        (team_id = winner_team_id AND has_late_decisive_goal)::integer END
+        AS late_decisive_win,
+    CASE WHEN goal_events_match_score THEN
+        (team_id = loser_team_id AND has_late_decisive_goal)::integer END
+        AS late_decisive_loss,
+    CASE WHEN goal_events_match_score THEN
+        (team_id = winner_team_id
+         AND has_stoppage_time_decisive_goal)::integer END
+        AS stoppage_time_win,
+    CASE WHEN goal_events_match_score THEN
+        has_multiple_lead_changes::integer END AS multiple_lead_changes,
+    has_red_card::integer AS match_had_red_card,
+    has_early_red_card::integer AS match_had_early_red_card,
+    has_var_intervention::integer AS match_had_var,
+    has_disallowed_goal::integer AS match_had_disallowed_goal,
+    CASE WHEN goal_events_match_score THEN
+        (team_id = winner_team_id AND has_decisive_penalty)::integer END
+        AS decisive_penalty_win,
+    CASE WHEN goal_events_match_score THEN
+        (team_id = winner_team_id AND has_decisive_own_goal)::integer END
+        AS decisive_own_goal_win
+FROM team_rows;
+
+CREATE INDEX IF NOT EXISTS wins_taxonomy_team_match_team_date_idx
+    ON wins_taxonomy_team_match (team_id, date, fixture_id);
+
+CREATE INDEX IF NOT EXISTS wins_taxonomy_team_match_fixture_team_idx
+    ON wins_taxonomy_team_match (fixture_id, team_id);
+
+
+/*
+8. OVERALL TEAM HISTORY
+-----------------------
+*/
+CREATE TEMP TABLE wins_taxonomy_team_form_features AS
+SELECT
+    fixture_id,
+    team_id,
+    COUNT(*) OVER w5 AS matches_last_5,
+    AVG(won) OVER w5 AS win_rate_last_5,
+    AVG(drew) OVER w5 AS draw_rate_last_5,
+    AVG(goals_for) OVER w5 AS goals_for_avg_last_5,
+    AVG(goals_against) OVER w5 AS goals_against_avg_last_5,
+    AVG(goal_difference) OVER w5 AS goal_difference_avg_last_5,
+    AVG(shots_on_goal_for) OVER w5 AS shots_on_goal_for_avg_last_5,
+    AVG(shots_on_goal_against) OVER w5 AS shots_on_goal_against_avg_last_5,
+    AVG(total_shots_for) OVER w5 AS total_shots_for_avg_last_5,
+    AVG(possession) OVER w5 AS possession_avg_last_5,
+    AVG(red_cards) OVER w5 AS red_cards_avg_last_5,
+    AVG(yellow_cards) OVER w5 AS yellow_cards_avg_last_5,
+    AVG(xg_for) OVER w5 AS xg_for_avg_last_5,
+    AVG(xg_against) OVER w5 AS xg_against_avg_last_5,
+    AVG(xg_difference) OVER w5 AS xg_difference_avg_last_5,
+    AVG(one_goal_match) OVER w5 AS one_goal_match_rate_last_5,
+    COUNT(*) FILTER (WHERE goal_events_match_score) OVER w5 AS reliable_narrative_matches_last_5,
+    AVG(comeback_win) OVER w5 AS comeback_win_rate_last_5,
+    AVG(comeback_loss) OVER w5 AS comeback_loss_rate_last_5,
+    AVG(early_permanent_lead_win) OVER w5 AS early_lead_win_rate_last_5,
+    AVG(late_decisive_win) OVER w5 AS late_win_rate_last_5,
+    AVG(late_decisive_loss) OVER w5 AS late_loss_rate_last_5,
+    AVG(stoppage_time_win) OVER w5 AS stoppage_win_rate_last_5,
+    AVG(multiple_lead_changes) OVER w5 AS lead_change_rate_last_5,
+    AVG(match_had_red_card) OVER w5 AS red_card_match_rate_last_5,
+    AVG(match_had_early_red_card) OVER w5 AS early_red_card_rate_last_5,
+    AVG(match_had_var) OVER w5 AS var_match_rate_last_5,
+    AVG(match_had_disallowed_goal) OVER w5 AS disallowed_goal_rate_last_5,
+    AVG(decisive_penalty_win) OVER w5 AS decisive_penalty_win_rate_last_5,
+    AVG(decisive_own_goal_win) OVER w5 AS decisive_own_goal_win_rate_last_5,
+    COUNT(*) OVER w10 AS matches_last_10,
+    AVG(won) OVER w10 AS win_rate_last_10,
+    AVG(drew) OVER w10 AS draw_rate_last_10,
+    AVG(goals_for) OVER w10 AS goals_for_avg_last_10,
+    AVG(goals_against) OVER w10 AS goals_against_avg_last_10,
+    AVG(goal_difference) OVER w10 AS goal_difference_avg_last_10,
+    AVG(xg_difference) OVER w10 AS xg_difference_avg_last_10,
+    AVG(comeback_win) OVER w10 AS comeback_win_rate_last_10,
+    AVG(early_permanent_lead_win) OVER w10 AS early_lead_win_rate_last_10,
+    AVG(late_decisive_win) OVER w10 AS late_win_rate_last_10,
+    AVG(late_decisive_loss) OVER w10 AS late_loss_rate_last_10,
+    AVG(match_had_red_card) OVER w10 AS red_card_match_rate_last_10
+FROM wins_taxonomy_team_match
+WINDOW
+    w5 AS (
+        PARTITION BY league_id, team_id
+        ORDER BY date, fixture_id
+        ROWS BETWEEN 5 PRECEDING AND 1 PRECEDING
+    ),
+    w10 AS (
+        PARTITION BY league_id, team_id
+        ORDER BY date, fixture_id
+        ROWS BETWEEN 10 PRECEDING AND 1 PRECEDING
+    );
+
+
+/* 9. LOCATION-SPECIFIC HISTORY: home form and away form remain separate. */
+CREATE TEMP TABLE wins_taxonomy_venue_features AS
+SELECT
+    fixture_id,
+    team_id,
+    COUNT(*) OVER w AS venue_matches_last_5,
+    AVG(won) OVER w AS venue_win_rate_last_5,
+    AVG(drew) OVER w AS venue_draw_rate_last_5,
+    AVG(goals_for) OVER w AS venue_goals_for_avg_last_5,
+    AVG(goals_against) OVER w AS venue_goals_against_avg_last_5,
+    AVG(goal_difference) OVER w AS venue_goal_difference_avg_last_5,
+    AVG(xg_difference) OVER w AS venue_xg_difference_avg_last_5,
+    AVG(comeback_win) OVER w AS venue_comeback_win_rate_last_5,
+    AVG(late_decisive_win) OVER w AS venue_late_win_rate_last_5,
+    AVG(late_decisive_loss) OVER w AS venue_late_loss_rate_last_5
+FROM wins_taxonomy_team_match
+WINDOW w AS (
+    PARTITION BY league_id, team_id, is_home
+    ORDER BY date, fixture_id
+    ROWS BETWEEN 5 PRECEDING AND 1 PRECEDING
+);
+
+
+/* 10. HEAD-TO-HEAD HISTORY from the current team's perspective. */
+CREATE TEMP TABLE wins_taxonomy_h2h_features AS
+SELECT
+    fixture_id,
+    team_id,
+    COUNT(*) OVER w AS h2h_matches_last_5,
+    AVG(won) OVER w AS h2h_win_rate_last_5,
+    AVG(drew) OVER w AS h2h_draw_rate_last_5,
+    AVG(goals_for) OVER w AS h2h_goals_for_avg_last_5,
+    AVG(goals_against) OVER w AS h2h_goals_against_avg_last_5,
+    AVG(goal_difference) OVER w AS h2h_goal_difference_avg_last_5,
+    AVG(one_goal_match) OVER w AS h2h_one_goal_match_rate_last_5,
+    AVG(comeback_win) OVER w AS h2h_comeback_win_rate_last_5,
+    AVG(late_decisive_win) OVER w AS h2h_late_win_rate_last_5,
+    AVG(late_decisive_loss) OVER w AS h2h_late_loss_rate_last_5
+FROM wins_taxonomy_team_match
+WINDOW w AS (
+    PARTITION BY league_id, team_id, opponent_team_id
+    ORDER BY date, fixture_id
+    ROWS BETWEEN 5 PRECEDING AND 1 PRECEDING
+);
+
+
+/*
+11. FINAL PREDICTION TABLE
+--------------------------
+*/
+CREATE TABLE transformed_prod_match_summary_win_taxonomy_features AS
+WITH match_targets AS
+(
+    SELECT
+        fixture_id,
+        date,
+        league_id,
+        league_season,
+        league_round,
+        venue_id,
+        venue_name,
+        home_team_id,
+        away_team_id,
+        CASE outcome
+            WHEN 'home_win' THEN 1
+            WHEN 'away_win' THEN 2
+            WHEN 'draw' THEN 0
+        END AS target
+    FROM wins_taxonomy_matches
+    WHERE is_target_eligible
+),
+home_features AS
+(
+    SELECT f.*, v.venue_matches_last_5, v.venue_win_rate_last_5,
+        v.venue_draw_rate_last_5, v.venue_goals_for_avg_last_5,
+        v.venue_goals_against_avg_last_5,
+        v.venue_goal_difference_avg_last_5, v.venue_xg_difference_avg_last_5,
+        v.venue_comeback_win_rate_last_5, v.venue_late_win_rate_last_5,
+        v.venue_late_loss_rate_last_5,
+        h.h2h_matches_last_5, h.h2h_win_rate_last_5,
+        h.h2h_draw_rate_last_5, h.h2h_goals_for_avg_last_5,
+        h.h2h_goals_against_avg_last_5, h.h2h_goal_difference_avg_last_5,
+        h.h2h_one_goal_match_rate_last_5, h.h2h_comeback_win_rate_last_5,
+        h.h2h_late_win_rate_last_5, h.h2h_late_loss_rate_last_5
+    FROM wins_taxonomy_team_form_features f
+    LEFT JOIN wins_taxonomy_venue_features v USING (fixture_id, team_id)
+    LEFT JOIN wins_taxonomy_h2h_features h USING (fixture_id, team_id)
+),
+away_features AS
+(
+    SELECT * FROM home_features
+)
+SELECT
+    m.*
+    ,hf.matches_last_5 AS home_matches_last_5
+    ,hf.win_rate_last_5 AS home_win_rate_last_5
+    ,hf.draw_rate_last_5 AS home_draw_rate_last_5
+    ,hf.goals_for_avg_last_5 AS home_goals_for_avg_last_5
+    ,hf.goals_against_avg_last_5 AS home_goals_against_avg_last_5
+    ,hf.goal_difference_avg_last_5 AS home_goal_difference_avg_last_5
+    ,hf.shots_on_goal_for_avg_last_5 AS home_shots_on_goal_for_avg_last_5
+    ,hf.shots_on_goal_against_avg_last_5 AS home_shots_on_goal_against_avg_last_5
+    ,hf.total_shots_for_avg_last_5 AS home_total_shots_for_avg_last_5
+    ,hf.possession_avg_last_5 AS home_possession_avg_last_5
+    ,hf.red_cards_avg_last_5 AS home_red_cards_avg_last_5
+    ,hf.yellow_cards_avg_last_5 AS home_yellow_cards_avg_last_5
+    ,hf.xg_for_avg_last_5 AS home_xg_for_avg_last_5
+    ,hf.xg_against_avg_last_5 AS home_xg_against_avg_last_5
+    ,hf.xg_difference_avg_last_5 AS home_xg_difference_avg_last_5
+    ,hf.one_goal_match_rate_last_5 AS home_one_goal_match_rate_last_5
+    ,hf.reliable_narrative_matches_last_5 AS home_reliable_narrative_matches_last_5
+    ,hf.comeback_win_rate_last_5 AS home_comeback_win_rate_last_5
+    ,hf.comeback_loss_rate_last_5 AS home_comeback_loss_rate_last_5
+    ,hf.early_lead_win_rate_last_5 AS home_early_lead_win_rate_last_5
+    ,hf.late_win_rate_last_5 AS home_late_win_rate_last_5
+    ,hf.late_loss_rate_last_5 AS home_late_loss_rate_last_5
+    ,hf.stoppage_win_rate_last_5 AS home_stoppage_win_rate_last_5
+    ,hf.lead_change_rate_last_5 AS home_lead_change_rate_last_5
+    ,hf.red_card_match_rate_last_5 AS home_red_card_match_rate_last_5
+    ,hf.early_red_card_rate_last_5 AS home_early_red_card_rate_last_5
+    ,hf.var_match_rate_last_5 AS home_var_match_rate_last_5
+    ,hf.disallowed_goal_rate_last_5 AS home_disallowed_goal_rate_last_5
+    ,hf.decisive_penalty_win_rate_last_5 AS home_decisive_penalty_win_rate_last_5
+    ,hf.decisive_own_goal_win_rate_last_5 AS home_decisive_own_goal_win_rate_last_5
+    ,hf.matches_last_10 AS home_matches_last_10
+    ,hf.win_rate_last_10 AS home_win_rate_last_10
+    ,hf.draw_rate_last_10 AS home_draw_rate_last_10
+    ,hf.goals_for_avg_last_10 AS home_goals_for_avg_last_10
+    ,hf.goals_against_avg_last_10 AS home_goals_against_avg_last_10
+    ,hf.goal_difference_avg_last_10 AS home_goal_difference_avg_last_10
+    ,hf.xg_difference_avg_last_10 AS home_xg_difference_avg_last_10
+    ,hf.comeback_win_rate_last_10 AS home_comeback_win_rate_last_10
+    ,hf.early_lead_win_rate_last_10 AS home_early_lead_win_rate_last_10
+    ,hf.late_win_rate_last_10 AS home_late_win_rate_last_10
+    ,hf.late_loss_rate_last_10 AS home_late_loss_rate_last_10
+    ,hf.red_card_match_rate_last_10 AS home_red_card_match_rate_last_10
+    ,hf.venue_matches_last_5 AS home_venue_matches_last_5
+    ,hf.venue_win_rate_last_5 AS home_venue_win_rate_last_5
+    ,hf.venue_draw_rate_last_5 AS home_venue_draw_rate_last_5
+    ,hf.venue_goals_for_avg_last_5 AS home_venue_goals_for_avg_last_5
+    ,hf.venue_goals_against_avg_last_5 AS home_venue_goals_against_avg_last_5
+    ,hf.venue_goal_difference_avg_last_5 AS home_venue_goal_difference_avg_last_5
+    ,hf.venue_xg_difference_avg_last_5 AS home_venue_xg_difference_avg_last_5
+    ,hf.venue_comeback_win_rate_last_5 AS home_venue_comeback_win_rate_last_5
+    ,hf.venue_late_win_rate_last_5 AS home_venue_late_win_rate_last_5
+    ,hf.venue_late_loss_rate_last_5 AS home_venue_late_loss_rate_last_5
+    ,hf.h2h_matches_last_5 AS home_h2h_matches_last_5
+    ,hf.h2h_win_rate_last_5 AS home_h2h_win_rate_last_5
+    ,hf.h2h_draw_rate_last_5 AS home_h2h_draw_rate_last_5
+    ,hf.h2h_goals_for_avg_last_5 AS home_h2h_goals_for_avg_last_5
+    ,hf.h2h_goals_against_avg_last_5 AS home_h2h_goals_against_avg_last_5
+    ,hf.h2h_goal_difference_avg_last_5 AS home_h2h_goal_difference_avg_last_5
+    ,hf.h2h_one_goal_match_rate_last_5 AS home_h2h_one_goal_match_rate_last_5
+    ,hf.h2h_comeback_win_rate_last_5 AS home_h2h_comeback_win_rate_last_5
+    ,hf.h2h_late_win_rate_last_5 AS home_h2h_late_win_rate_last_5
+    ,hf.h2h_late_loss_rate_last_5 AS home_h2h_late_loss_rate_last_5
+
+    ,af.matches_last_5 AS away_matches_last_5
+    ,af.win_rate_last_5 AS away_win_rate_last_5
+    ,af.draw_rate_last_5 AS away_draw_rate_last_5
+    ,af.goals_for_avg_last_5 AS away_goals_for_avg_last_5
+    ,af.goals_against_avg_last_5 AS away_goals_against_avg_last_5
+    ,af.goal_difference_avg_last_5 AS away_goal_difference_avg_last_5
+    ,af.shots_on_goal_for_avg_last_5 AS away_shots_on_goal_for_avg_last_5
+    ,af.shots_on_goal_against_avg_last_5 AS away_shots_on_goal_against_avg_last_5
+    ,af.total_shots_for_avg_last_5 AS away_total_shots_for_avg_last_5
+    ,af.possession_avg_last_5 AS away_possession_avg_last_5
+    ,af.red_cards_avg_last_5 AS away_red_cards_avg_last_5
+    ,af.yellow_cards_avg_last_5 AS away_yellow_cards_avg_last_5
+    ,af.xg_for_avg_last_5 AS away_xg_for_avg_last_5
+    ,af.xg_against_avg_last_5 AS away_xg_against_avg_last_5
+    ,af.xg_difference_avg_last_5 AS away_xg_difference_avg_last_5
+    ,af.one_goal_match_rate_last_5 AS away_one_goal_match_rate_last_5
+    ,af.reliable_narrative_matches_last_5 AS away_reliable_narrative_matches_last_5
+    ,af.comeback_win_rate_last_5 AS away_comeback_win_rate_last_5
+    ,af.comeback_loss_rate_last_5 AS away_comeback_loss_rate_last_5
+    ,af.early_lead_win_rate_last_5 AS away_early_lead_win_rate_last_5
+    ,af.late_win_rate_last_5 AS away_late_win_rate_last_5
+    ,af.late_loss_rate_last_5 AS away_late_loss_rate_last_5
+    ,af.stoppage_win_rate_last_5 AS away_stoppage_win_rate_last_5
+    ,af.lead_change_rate_last_5 AS away_lead_change_rate_last_5
+    ,af.red_card_match_rate_last_5 AS away_red_card_match_rate_last_5
+    ,af.early_red_card_rate_last_5 AS away_early_red_card_rate_last_5
+    ,af.var_match_rate_last_5 AS away_var_match_rate_last_5
+    ,af.disallowed_goal_rate_last_5 AS away_disallowed_goal_rate_last_5
+    ,af.decisive_penalty_win_rate_last_5 AS away_decisive_penalty_win_rate_last_5
+    ,af.decisive_own_goal_win_rate_last_5 AS away_decisive_own_goal_win_rate_last_5
+    ,af.matches_last_10 AS away_matches_last_10
+    ,af.win_rate_last_10 AS away_win_rate_last_10
+    ,af.draw_rate_last_10 AS away_draw_rate_last_10
+    ,af.goals_for_avg_last_10 AS away_goals_for_avg_last_10
+    ,af.goals_against_avg_last_10 AS away_goals_against_avg_last_10
+    ,af.goal_difference_avg_last_10 AS away_goal_difference_avg_last_10
+    ,af.xg_difference_avg_last_10 AS away_xg_difference_avg_last_10
+    ,af.comeback_win_rate_last_10 AS away_comeback_win_rate_last_10
+    ,af.early_lead_win_rate_last_10 AS away_early_lead_win_rate_last_10
+    ,af.late_win_rate_last_10 AS away_late_win_rate_last_10
+    ,af.late_loss_rate_last_10 AS away_late_loss_rate_last_10
+    ,af.red_card_match_rate_last_10 AS away_red_card_match_rate_last_10
+    ,af.venue_matches_last_5 AS away_venue_matches_last_5
+    ,af.venue_win_rate_last_5 AS away_venue_win_rate_last_5
+    ,af.venue_draw_rate_last_5 AS away_venue_draw_rate_last_5
+    ,af.venue_goals_for_avg_last_5 AS away_venue_goals_for_avg_last_5
+    ,af.venue_goals_against_avg_last_5 AS away_venue_goals_against_avg_last_5
+    ,af.venue_goal_difference_avg_last_5 AS away_venue_goal_difference_avg_last_5
+    ,af.venue_xg_difference_avg_last_5 AS away_venue_xg_difference_avg_last_5
+    ,af.venue_comeback_win_rate_last_5 AS away_venue_comeback_win_rate_last_5
+    ,af.venue_late_win_rate_last_5 AS away_venue_late_win_rate_last_5
+    ,af.venue_late_loss_rate_last_5 AS away_venue_late_loss_rate_last_5
+    ,af.h2h_matches_last_5 AS away_h2h_matches_last_5
+    ,af.h2h_win_rate_last_5 AS away_h2h_win_rate_last_5
+    ,af.h2h_draw_rate_last_5 AS away_h2h_draw_rate_last_5
+    ,af.h2h_goals_for_avg_last_5 AS away_h2h_goals_for_avg_last_5
+    ,af.h2h_goals_against_avg_last_5 AS away_h2h_goals_against_avg_last_5
+    ,af.h2h_goal_difference_avg_last_5 AS away_h2h_goal_difference_avg_last_5
+    ,af.h2h_one_goal_match_rate_last_5 AS away_h2h_one_goal_match_rate_last_5
+    ,af.h2h_comeback_win_rate_last_5 AS away_h2h_comeback_win_rate_last_5
+    ,af.h2h_late_win_rate_last_5 AS away_h2h_late_win_rate_last_5
+    ,af.h2h_late_loss_rate_last_5 AS away_h2h_late_loss_rate_last_5
+FROM match_targets m
+LEFT JOIN home_features hf
+    ON hf.fixture_id = m.fixture_id AND hf.team_id = m.home_team_id
+LEFT JOIN away_features af
+    ON af.fixture_id = m.fixture_id AND af.team_id = m.away_team_id;

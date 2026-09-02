@@ -396,6 +396,7 @@ FROM away_wins_taxonomy_analysis
 GROUP BY 1, 2
 ORDER BY 1, 2;
 
+
 /* B. Tenure crossed with strength. */
 SELECT
     home_consolidation_category,
@@ -532,6 +533,7 @@ FROM away_wins_taxonomy_analysis
 GROUP BY 1, 2
 ORDER BY 1, 2;
 
+
 /* H. Monotonicity check: away-win rate across feature quintiles.
    A useful predictive feature should generally show an ordered response. */
 WITH long_features AS (
@@ -620,3 +622,20 @@ SELECT
 FROM away_wins_taxonomy_analysis
 GROUP BY 1, 2
 ORDER BY 1, 2;
+
+
+/*
+EDA CONCLUSIONS
+===============
+
+1. Relative strength is the clearest away-win signal.
+   Away-win frequency rises from 18.63% in the lowest relative-strength
+   quintile to 34.89% in the highest, with a broadly monotonic increase between
+   them. Prior-only away-minus-home strength should therefore be a high-priority model feature.
+
+2. Recent away-form advantage is also informative.
+   Away-win frequency rises from 20.55% in the lowest form-advantage quintile
+   to 32.97% in the highest. The middle quintiles are not perfectly monotonic,
+   so form may work better as a nonlinear feature or through interactions with
+   relative strength than as a purely linear effect.
+*/

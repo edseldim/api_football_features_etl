@@ -433,6 +433,7 @@ fixture_id
 FROM away_wins_taxonomy_full_raw_consolidation;
 
 CREATE TABLE transformed_prod_match_summary_away_wins_taxonomy_features AS
+SELECT
 fixture_id
 ,date
 ,league_id

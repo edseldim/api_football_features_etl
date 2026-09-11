@@ -1,0 +1,33 @@
+{
+    "Global":{
+        "key_features": [
+            "fixture_id",
+            "date",
+            "venue_id",
+            "venue_name",
+            "status_elapsed",
+            "status_extra",
+            "league_id",
+            "league_season",
+            "league_round",
+            "home_team_id",
+            "away_team_id",
+            "target"
+        ]
+    },
+    "CreateFeatures":{
+        "files":[
+            "1_league_features.sql",
+            "2_win_taxonomy.sql",
+            "3_away_wins_taxonomy.sql"
+        ]
+    },
+    "FeatureImputation":{
+        "schema":"public",
+        "feature_tables":{
+            "league_features":"transformed_prod_match_summary_full_league_features",
+            "win_taxonomy":"transformed_prod_match_summary_win_taxonomy_features",
+            "away_wins_taxonomy":"transformed_prod_match_summary_away_wins_taxonomy_features"
+        }
+    }
+}

@@ -5,7 +5,7 @@ from typing import Any, Callable, Mapping, Optional, Union
 import dotenv
 import pandas as pd
 import sqlparse
-from sqlalchemy import create_engine, text
+from sqlalchemy import create_engine, inspect, text
 from sqlalchemy.engine import Engine
 
 
@@ -149,10 +149,173 @@ class PostgresConnector:
             )
             raise
 
+    def download_dataframe(
+        self,
+        file_path: Union[str, Path],
+        params: Optional[Mapping[str, Any]] = None,
+    ) -> pd.DataFrame:
+        """Execute a query from a SQL file and return its rows as a DataFrame.
+
+        SQL values should use SQLAlchemy named parameters, for example
+        ``WHERE table_name = :table_name``.
+
+        Parameters:
+            file_path: Path to a ``.sql`` file containing one query.
+            params: Optional values for the query's named parameters.
+
+        Returns:
+            pandas.DataFrame: Query results, including column names.
+
+        Raises:
+            TypeError: If ``file_path`` or ``params`` has an invalid type.
+            ValueError: If the path is empty, is not a ``.sql`` file, or the
+                file does not contain exactly one SQL statement.
+            FileNotFoundError: If the SQL file does not exist.
+        """
+        if not isinstance(file_path, (str, Path)):
+            raise TypeError("file_path must be a string or Path")
+        if params is not None and not isinstance(params, Mapping):
+            raise TypeError("params must be a mapping or None")
+
+        file_path_text = str(file_path)
+        if not file_path_text:
+            raise ValueError("file_path must not be empty")
+
+        sql_path = Path(file_path_text).expanduser()
+        if sql_path.suffix.lower() != ".sql":
+            raise ValueError("file_path must have a .sql extension")
+
+        try:
+            if not sql_path.is_file():
+                raise FileNotFoundError(f"SQL file not found: {sql_path}")
+
+            sql = sql_path.read_text(encoding="utf-8")
+            queries = [query.strip() for query in sqlparse.split(sql) if query.strip()]
+            if len(queries) != 1:
+                raise ValueError(
+                    "download_dataframe requires exactly one SQL statement; "
+                    f"found {len(queries)}"
+                )
+
+            bound_params = dict(params or {})
+            self._log_database_operation(
+                "download_dataframe",
+                "started",
+                sql_path.name,
+            )
+
+            with self.engine.connect() as connection:
+                dataframe = pd.read_sql_query(
+                    text(queries[0]),
+                    connection,
+                    params=bound_params,
+                )
+
+            self._log_database_operation(
+                "download_dataframe",
+                "succeeded",
+                sql_path.name,
+                rows=len(dataframe),
+                columns=len(dataframe.columns),
+            )
+            return dataframe
+        except Exception as exc:
+            self._log_database_operation(
+                "download_dataframe",
+                "failed",
+                str(sql_path),
+                level="ERROR",
+                error=self._format_database_error(exc),
+            )
+            raise
+
+    def download_table(
+        self,
+        table_name: str,
+        schema: Optional[str] = None,
+    ) -> pd.DataFrame:
+        """Download a database table into a pandas DataFrame."""
+        if not isinstance(table_name, str) or not table_name:
+            raise ValueError("table_name must be a non-empty string")
+        if schema is not None and (not isinstance(schema, str) or not schema):
+            raise ValueError("schema must be a non-empty string or None")
+
+        target = f"{schema}.{table_name}" if schema else table_name
+        try:
+            self._log_database_operation("download_table", "started", target)
+            with self.engine.connect() as connection:
+                dataframe = pd.read_sql_table(
+                    table_name,
+                    connection,
+                    schema=schema,
+                )
+            self._log_database_operation(
+                "download_table",
+                "succeeded",
+                target,
+                rows=len(dataframe),
+                columns=len(dataframe.columns),
+            )
+            return dataframe
+        except Exception as exc:
+            self._log_database_operation(
+                "download_table",
+                "failed",
+                target,
+                level="ERROR",
+                error=self._format_database_error(exc),
+            )
+            raise
+
+    def get_table_columns(
+        self,
+        table_name: str,
+        schema: str = "public",
+    ) -> list[dict[str, Any]]:
+        """Return reflected column metadata for a schema-qualified table."""
+        if not isinstance(table_name, str) or not table_name:
+            raise ValueError("table_name must be a non-empty string")
+        if not isinstance(schema, str) or not schema:
+            raise ValueError("schema must be a non-empty string")
+
+        target = f"{schema}.{table_name}"
+        try:
+            self._log_database_operation("get_table_columns", "started", target)
+            columns = inspect(self.engine).get_columns(table_name, schema=schema)
+            self._log_database_operation(
+                "get_table_columns",
+                "succeeded",
+                target,
+                columns=len(columns),
+            )
+            return list(columns)
+        except Exception as exc:
+            self._log_database_operation(
+                "get_table_columns",
+                "failed",
+                target,
+                level="ERROR",
+                error=self._format_database_error(exc),
+            )
+            raise
+
+    def quote_identifier(self, identifier: str) -> str:
+        """Quote one SQL identifier using the active database dialect."""
+        if not isinstance(identifier, str) or not identifier:
+            raise ValueError("identifier must be a non-empty string")
+        return self.engine.dialect.identifier_preparer.quote(identifier)
+
+    def compile_sql_type(self, column_type: Any) -> str:
+        """Compile reflected type metadata for the active database dialect."""
+        if column_type is None or not hasattr(column_type, "compile"):
+            raise TypeError("column_type must be a SQLAlchemy type")
+        return str(column_type.compile(dialect=self.engine.dialect))
+
     def run_sql_file(
         self,
         file_path: Union[str, Path],
         params: Optional[Mapping[str, Any]] = None,
+        template_values: Optional[Mapping[str, str]] = None,
     ) -> None:
         """Execute parameterized statements from an explicitly provided SQL file.
 
@@ -166,6 +329,9 @@ class PostgresConnector:
             file_path (str | Path): Path to an existing ``.sql`` file.
             params (Mapping[str, Any] | None): Values for named parameters in the
                 SQL file. Defaults to an empty mapping.
+            template_values (Mapping[str, str] | None): Trusted SQL fragments used
+                to fill ``str.format`` placeholders before execution. Identifiers
+                must be quoted before they are supplied here.
 
         Returns:
             None
@@ -186,6 +352,13 @@ class PostgresConnector:
             raise ValueError("file_path must have a .sql extension")
         if params is not None and not isinstance(params, Mapping):
             raise TypeError("params must be a mapping or None")
+        if template_values is not None and not isinstance(template_values, Mapping):
+            raise TypeError("template_values must be a mapping or None")
+        if template_values is not None and not all(
+            isinstance(key, str) and isinstance(value, str)
+            for key, value in template_values.items()
+        ):
+            raise TypeError("template_values keys and values must be strings")
 
         try:
             if not sql_path.is_file():
@@ -193,6 +366,13 @@ class PostgresConnector:
 
             bound_params = dict(params or {})
             sql = sql_path.read_text(encoding="utf-8")
+            if template_values:
+                try:
+                    sql = sql.format_map(dict(template_values))
+                except KeyError as exc:
+                    raise ValueError(
+                        f"Missing SQL template value: {exc.args[0]}"
+                    ) from exc
             queries = [query.strip() for query in sqlparse.split(sql) if query.strip()]
             self._log_database_operation(
                 "run_sql_file",
@@ -208,6 +388,7 @@ class PostgresConnector:
                         "executing",
                         sql_path.name,
                         statement=f"{statement_number}/{len(queries)}",
+                        query=query,
                     )
                     connection.execute(text(query), bound_params)
 

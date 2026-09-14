@@ -9,12 +9,14 @@ from .file_logger import FileLogger
 
 
 DEFAULT_SQL_DIR = Path(__file__).resolve().parent / "static" / "sql"
+DEFAULT_DATA_DIR = Path(__file__).resolve().parent / "static" / "data"
 
 
 class ETLHelper:
     """Hold resources initialized once and shared by every ETL step."""
 
     DEFAULT_SQL_DIR = DEFAULT_SQL_DIR
+    DEFAULT_DATA_DIR = DEFAULT_DATA_DIR
 
     def __init__(
         self,
@@ -40,6 +42,17 @@ class ETLHelper:
         self.logger = logger
         self.params = self._load_params(config_path)
         self.sql_path = self.DEFAULT_SQL_DIR
+        self.data_path = self.DEFAULT_DATA_DIR
+
+    def set_payload(self, payload: dict[str, Any]) -> None:
+        """Store a dictionary of values to be used in SQL queries."""
+        if not isinstance(payload, dict):
+            raise TypeError("payload must be a dictionary")
+        self.payload = payload
+
+    def get_payload(self) -> dict[str, Any]:
+        """Return the stored payload dictionary."""
+        return getattr(self, "payload", {})
 
     @staticmethod
     def _load_params(config_path: Union[str, Path]) -> dict[str, Any]:

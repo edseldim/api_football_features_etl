@@ -14,9 +14,11 @@ setup(
         "pyarrow",
         "python-dotenv",
         "requests",
+        "scikit-learn",
+        "scipy",
         "SQLAlchemy",
         "sqlparse>=0.5,<1",
-        "psycopg2-binary"
+        "psycopg2-binary",
     ],
     python_requires=">=3.10",
 )

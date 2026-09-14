@@ -28,6 +28,24 @@
             "league_features":"transformed_prod_match_summary_full_league_features",
             "win_taxonomy":"transformed_prod_match_summary_win_taxonomy_features",
             "away_wins_taxonomy":"transformed_prod_match_summary_away_wins_taxonomy_features"
-        }
+        },
+        "imputation_percentage_tbl":"imputation_percentage",
+        "imputation_percentage_filter":0.3
+    },
+    "FeatureSelection":{
+        "feature_catalog_path":"feature_catalog.csv",
+        "target":"target",
+        "random_state":42,
+        "max_discrete_cardinality":50,
+        "high_correlation_threshold":0.8,
+        "output_directory":"outputs",
+        "mutual_information_threshold":0.01,
+        "cramers_v_threshold":0.1,
+        "rfe_features_to_select":100,
+        "continuous_output_file":"selected_continuous_features.csv",
+        "categorical_output_file":"selected_categorical_features.csv",
+        "correlation_output_file":"highly_correlated_features.csv",
+        "correlation_filter_output_file":"correlation_filtered_features.csv",
+        "rfe_output_file":"rfe_feature_selection.csv"
     }
 }

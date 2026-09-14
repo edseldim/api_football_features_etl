@@ -1,4 +1,4 @@
-"""Feature-selection operations executed entirely inside PostgreSQL."""
+"""Feature-imputation operations executed in PostgreSQL and pandas."""
 
 from typing import Any, Mapping
 
@@ -13,7 +13,7 @@ QUERY_ZERO_IMPUTE_PATH = "feature_selection/imputed_table_sql_template.sql"
 
 
 class FeatureImputation:
-    """Create zero-imputed feature tables without DataFrame transfers."""
+    """Create imputation tables, metadata, and a filtered training dataset."""
 
     def __init__(self, etl_helper: ETLHelper) -> None:
         """Initialize the step with shared resources and configuration."""
@@ -23,7 +23,9 @@ class FeatureImputation:
         self.etl_helper = etl_helper
         self.params = etl_helper.params.get("FeatureImputation", {})
         self.params.update(etl_helper.params.get("Global", {}))
-        self.params["sql_files"] = {"zero_impute": self.etl_helper.sql_path / QUERY_ZERO_IMPUTE_PATH}
+        self.params["sql_files"] = {
+            "zero_impute": self.etl_helper.sql_path / QUERY_ZERO_IMPUTE_PATH
+        }
 
     def _build_zero_imputed_columns(
         self,
@@ -119,7 +121,7 @@ class FeatureImputation:
             raise
 
     def download_and_join_imputed_tables(self) -> pd.DataFrame:
-        """Join imputed tables using league features as the base DataFrame.
+        """Join source tables, filter sparse features, and zero-impute them.
 
         The league-features table contributes all columns. Other tables use
         ``fixture_id`` only as the join key and contribute only columns that
@@ -143,7 +145,7 @@ class FeatureImputation:
         connector = self.etl_helper.database_connection
         fixture_id = "fixture_id"
         key_feature_set = set(key_features)
-        league_table_name = "imputed_zero_league_features"
+        league_table_name = feature_tables["league_features"]
         joined_dataframe = connector.download_table(
             league_table_name,
             schema=schema,
@@ -163,7 +165,7 @@ class FeatureImputation:
             if table_alias == "league_features":
                 continue
 
-            table_name = f"imputed_zero_{table_alias}"
+            table_name = feature_tables[table_alias]
             feature_dataframe = connector.download_table(
                 table_name,
                 schema=schema,
@@ -207,20 +209,102 @@ class FeatureImputation:
                 validate="one_to_one",
             )
 
-        # Post-join feature imputation. Keep this block separate so the zero
-        # strategy can later be replaced by median, grouped, or model-based
-        # imputation without changing the table-join logic above.
-        columns_to_impute = [
+        if joined_dataframe.empty:
+            raise ValueError("The joined feature dataset must not be empty")
+
+        imputation_percentage_table = self.params.get("imputation_percentage_tbl")
+        imputation_percentage_filter = self.params.get(
+            "imputation_percentage_filter"
+        )
+        if (
+            not isinstance(imputation_percentage_table, str)
+            or not imputation_percentage_table
+        ):
+            raise ValueError(
+                "imputation_percentage_tbl must be a non-empty table name"
+            )
+        if not isinstance(imputation_percentage_filter, (int, float)) or isinstance(
+            imputation_percentage_filter, bool
+        ):
+            raise TypeError("imputation_percentage_filter must be numeric")
+        imputation_percentage_filter = float(imputation_percentage_filter)
+        if not 0 <= imputation_percentage_filter <= 1:
+            raise ValueError(
+                "imputation_percentage_filter must be between 0 and 1"
+            )
+
+        candidate_features = [
             column
             for column in joined_dataframe.columns
             if column not in key_feature_set
         ]
+        total_rows = len(joined_dataframe)
+        imputation_metadata = pd.DataFrame(
+            {
+                "feature": candidate_features,
+                "missing_rows": [
+                    int(joined_dataframe[column].isna().sum())
+                    for column in candidate_features
+                ],
+                "total_rows": total_rows,
+            }
+        )
+        imputation_metadata["imputation_percentage"] = (
+            imputation_metadata["missing_rows"] / total_rows * 100.0
+        )
+        maximum_imputation_percentage = imputation_percentage_filter * 100.0
+        imputation_metadata["passes_imputation_filter"] = (
+            imputation_metadata["imputation_percentage"]
+            <= maximum_imputation_percentage
+        )
+        connector.upload_dataframe(
+            imputation_metadata,
+            imputation_percentage_table,
+            if_exists="replace",
+            index=False,
+            schema=schema,
+        )
 
-        zero_imputed_train_set = joined_dataframe.copy()
-        zero_imputed_train_set = zero_imputed_train_set.loc[:, columns_to_impute] = (
+        # no imputation filtering
+        # columns_to_impute = imputation_metadata["feature"].tolist()
+        # excluded_features = []
+        # selected_columns = [
+        #     column
+        #     for column in joined_dataframe.columns
+        #     if column in key_feature_set or column in columns_to_impute
+        # ]
+
+        # imputation filtering
+        columns_to_impute = imputation_metadata.loc[
+            imputation_metadata["passes_imputation_filter"], "feature"
+        ].tolist()
+        excluded_features = imputation_metadata.loc[
+            ~imputation_metadata["passes_imputation_filter"], "feature"
+        ].tolist()
+        selected_columns = [
+            column
+            for column in joined_dataframe.columns
+            if column in key_feature_set or column in columns_to_impute
+        ]
+
+        # Keep imputation separate so its strategy can later be replaced
+        # without changing the join, metadata, or filtering logic.
+        zero_imputed_train_set = joined_dataframe.loc[:, selected_columns].copy()
+        zero_imputed_train_set.loc[:, columns_to_impute] = (
             zero_imputed_train_set.loc[:, columns_to_impute].fillna(0)
         )
         self.params["zero_imputed_train_set"] = zero_imputed_train_set
+        self.params["imputation_metadata"] = imputation_metadata
+        self.params["imputation_excluded_features"] = excluded_features
+
+        self.etl_helper.logger.log_event(
+            "INFO",
+            "Imputation metadata created "
+            f"| table={schema}.{imputation_percentage_table} "
+            f"| filter={maximum_imputation_percentage:.2f}% "
+            f"| retained={len(columns_to_impute)} "
+            f"| excluded={len(excluded_features)}",
+        )
 
         self.etl_helper.logger.log_event("INFO", "0 imputed train set:\n")
         self.etl_helper.logger.log_event(
@@ -244,12 +328,23 @@ class FeatureImputation:
             joined_features = self.download_and_join_imputed_tables()
             result = {
                 "imputed_tables": imputed_tables,
-                "joined_features": joined_features,
+                "imputed_dataset": joined_features,
+                "imputation_metadata": self.params["imputation_metadata"],
+                "imputation_excluded_features": self.params[
+                    "imputation_excluded_features"
+                ],
+                "imputation_metadata_table": (
+                    f"{self.params.get('schema', 'public')}."
+                    f"{self.params['imputation_percentage_tbl']}"
+                ),
             }
             self.etl_helper.logger.log_event(
                 "INFO",
                 f"Feature imputation completed for {len(imputed_tables)} table(s)",
             )
+
+            self.etl_helper.set_payload(result)
+
             return result
         except Exception as exc:
             self.etl_helper.logger.log_event(

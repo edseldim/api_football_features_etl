@@ -103,7 +103,8 @@ SELECT
             END
     ) AS is_target_eligible
 FROM prod_match_summary m
-WHERE m.league_id = 128 AND league_season <= 2024;
+WHERE m.league_id = 128 --AND league_season <= 2024
+;
 
 
 /*

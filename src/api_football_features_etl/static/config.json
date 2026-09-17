@@ -13,7 +13,11 @@
             "home_team_id",
             "away_team_id",
             "target"
-        ]
+        ],
+        "train": ["2021-01-01","2024-12-31"],
+        "val": ["2025-01-01","2025-12-31"],
+        "test": ["2026-01-01","2026-06-30"],
+        "oot": ["2026-07-01","2026-12-31"]
     },
     "CreateFeatures":{
         "files":[
@@ -29,8 +33,10 @@
             "win_taxonomy":"transformed_prod_match_summary_win_taxonomy_features",
             "away_wins_taxonomy":"transformed_prod_match_summary_away_wins_taxonomy_features"
         },
-        "imputation_percentage_tbl":"imputation_percentage",
-        "imputation_percentage_filter":0.3
+        "imputation_metadata_tbl":"imputation_metadata",
+        "imputation_percentage_filter":0.3,
+        "imputation_strategy":"constant_zero",
+        "imputed_table_prefix":"iz"
     },
     "FeatureSelection":{
         "feature_catalog_path":"feature_catalog.csv",

@@ -345,7 +345,8 @@ LEFT JOIN away_wins_taxonomy_schedule aws
   ON aws.fixture_id = base.fixture_id AND aws.team_id = base.away_team_id
 LEFT JOIN wins_taxonomy_match_level ml
   ON ml.fixture_id = base.fixture_id
-WHERE base.league_season >= 2021;
+--WHERE base.league_season >= 2021
+;
 
 
 /* 7. Prior-only tenure and strength categories. */

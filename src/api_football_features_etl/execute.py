@@ -8,6 +8,7 @@ from .create_features import CreateFeatures
 from .database_conn import PostgresConnector
 from .ETLHelper import ETLHelper
 from .feature_imputation import FeatureImputation
+from .feature_selection import FeatureSelection
 from .file_logger import FileLogger
 
 
@@ -39,13 +40,16 @@ def run_etl(
         )
 
         create_features = CreateFeatures(etl_helper)
-        feature_selection = FeatureImputation(etl_helper)
+        feature_imputation = FeatureImputation(etl_helper)
+        feature_selection = FeatureSelection(etl_helper)
 
         created_features = create_features.run()
+        imputed_features = feature_imputation.run()
         selected_features = feature_selection.run()
         result = {
             "created_features": created_features,
-            "feature_selection": selected_features,
+            "imputed_features": imputed_features,
+            "selected_features": selected_features,
         }
 
         logger.log_event("INFO", "Features ETL completed")

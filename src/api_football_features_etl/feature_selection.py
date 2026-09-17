@@ -1,5 +1,6 @@
 """Select features by their statistical association with the target."""
 
+from collections.abc import Mapping
 from math import exp, isfinite, sqrt
 from pathlib import Path
 from typing import Any
@@ -26,17 +27,27 @@ class FeatureSelection:
         self.params = dict(etl_helper.params.get("FeatureSelection", {}))
         self.params.update(etl_helper.params.get("Global", {}))
 
-    def get_imputed_dataset(self) -> pd.DataFrame:
-        """Return the imputed dataset produced by the preceding ETL step."""
+    def get_imputed_train_dataset(self) -> pd.DataFrame:
+        """Return only the imputed train split from the preceding ETL step."""
         payload = self.etl_helper.get_payload()
-        imputed_dataset = payload.get("imputed_dataset")
-        if not isinstance(imputed_dataset, pd.DataFrame):
+        imputed_datasets = payload.get("imputed_datasets")
+        if not isinstance(imputed_datasets, Mapping):
             raise ValueError(
-                "ETLHelper payload must contain an 'imputed_dataset' DataFrame"
+                "ETLHelper payload must contain an 'imputed_datasets' mapping"
             )
-        if imputed_dataset.empty:
-            raise ValueError("The imputed dataset must not be empty")
-        return imputed_dataset
+        train_dataset = imputed_datasets.get("train")
+        if not isinstance(train_dataset, pd.DataFrame):
+            raise ValueError(
+                "ETLHelper payload 'imputed_datasets' must contain a train "
+                "DataFrame"
+            )
+        if train_dataset.empty:
+            raise ValueError("The imputed train dataset must not be empty")
+        return train_dataset
+
+    def get_imputed_dataset(self) -> pd.DataFrame:
+        """Return the train split through the previous public method name."""
+        return self.get_imputed_train_dataset()
 
     def load_feature_catalog(self) -> pd.DataFrame:
         """Load the configured feature/feature_type catalog CSV."""
@@ -830,10 +841,13 @@ class FeatureSelection:
 
     def run(self) -> dict[str, Any]:
         """Score, filter, and export cataloged features by feature type."""
-        self.etl_helper.logger.log_event("INFO", "Feature selection started")
+        self.etl_helper.logger.log_event(
+            "INFO",
+            "Feature selection started | dataset=train",
+        )
 
         try:
-            imputed_dataset = self.get_imputed_dataset()
+            imputed_dataset = self.get_imputed_train_dataset()
             catalog = self.load_feature_catalog()
             excluded_features = self.etl_helper.get_payload().get(
                 "imputation_excluded_features", []

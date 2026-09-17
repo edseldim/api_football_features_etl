@@ -256,11 +256,11 @@ class FeatureImputation:
     ) -> pd.DataFrame:
         """Download and join a set of feature tables by fixture ID.
 
-        Source tables are used when ``feature_tables`` is omitted. The
-        imputation pipeline passes one dataset's persisted table mapping here,
-        so joining happens only after per-source tables have been imputed.
+        Source tables are used when ``feature_tables`` is omitted. This method
+        remains available when persisted feature tables need to be loaded in a
+        later process; the active imputation run joins its DataFrames directly.
         """
-        configured_tables, key_features, schema, _, _ = self._validated_settings()
+        configured_tables, _, schema, _, _ = self._validated_settings()
         tables_to_join = feature_tables or configured_tables
         if not isinstance(tables_to_join, Mapping) or not tables_to_join:
             raise ValueError("feature_tables must be a non-empty mapping")
@@ -269,17 +269,41 @@ class FeatureImputation:
                 f"feature_tables must contain a '{BASE_TABLE_ALIAS}' alias"
             )
 
-        key_feature_set = set(key_features)
-        base_table_name = tables_to_join[BASE_TABLE_ALIAS]
-        joined_dataframe = self._download_table(base_table_name, schema)
-        self._validate_fixture_ids(joined_dataframe, base_table_name)
+        downloaded_tables = {
+            table_alias: self._download_table(table_name, schema)
+            for table_alias, table_name in tables_to_join.items()
+        }
+        return self.join_feature_tables(downloaded_tables)
 
-        for table_alias, table_name in tables_to_join.items():
+    def join_feature_tables(
+        self,
+        feature_tables: Mapping[str, pd.DataFrame],
+    ) -> pd.DataFrame:
+        """Join already-loaded feature DataFrames without database round trips."""
+        _, key_features, _, _, _ = self._validated_settings()
+        if not isinstance(feature_tables, Mapping) or not feature_tables:
+            raise ValueError("feature_tables must be a non-empty mapping")
+        if BASE_TABLE_ALIAS not in feature_tables:
+            raise ValueError(
+                f"feature_tables must contain a '{BASE_TABLE_ALIAS}' alias"
+            )
+
+        key_feature_set = set(key_features)
+        base_dataframe = feature_tables[BASE_TABLE_ALIAS]
+        if not isinstance(base_dataframe, pd.DataFrame):
+            raise TypeError(
+                f"Feature table '{BASE_TABLE_ALIAS}' must be a DataFrame"
+            )
+        self._validate_fixture_ids(base_dataframe, BASE_TABLE_ALIAS)
+        joined_dataframe = base_dataframe.copy()
+
+        for table_alias, feature_dataframe in feature_tables.items():
             if table_alias == BASE_TABLE_ALIAS:
                 continue
 
-            feature_dataframe = self._download_table(table_name, schema)
-            self._validate_fixture_ids(feature_dataframe, table_name)
+            if not isinstance(feature_dataframe, pd.DataFrame):
+                raise TypeError(f"Feature table '{table_alias}' must be a DataFrame")
+            self._validate_fixture_ids(feature_dataframe, table_alias)
             feature_columns = [
                 column
                 for column in feature_dataframe.columns
@@ -292,7 +316,7 @@ class FeatureImputation:
                 overlap = ", ".join(sorted(overlapping_columns))
                 self.etl_helper.logger.log_event(
                     "INFO",
-                    f"Ignoring overlapping features from '{table_name}': {overlap}",
+                    f"Ignoring overlapping features from '{table_alias}': {overlap}",
                 )
                 feature_columns = [
                     column
@@ -347,10 +371,6 @@ class FeatureImputation:
                 f"{unassigned_count}",
             )
 
-        self.params["date_segments"] = {
-            name: [start.date().isoformat(), end.date().isoformat()]
-            for name, (start, end) in segments.items()
-        }
         return datasets
 
     def split_feature_tables(
@@ -392,7 +412,7 @@ class FeatureImputation:
         features: list[str],
     ) -> dict[str, Any]:
         """Return train-fitted values; override this for another strategy."""
-        del train_dataset
+
         return {feature: 0 for feature in features}
 
     def fit_imputation_metadata(
@@ -409,7 +429,6 @@ class FeatureImputation:
         metadata_frames: list[pd.DataFrame] = []
         values_by_table: dict[str, dict[str, Any]] = {}
         excluded_by_table: dict[str, list[str]] = {}
-        columns_by_table: dict[str, list[str]] = {}
         train_start, train_end = self._date_segments()["train"]
 
         for table_alias, train_dataset in train_tables.items():
@@ -470,12 +489,10 @@ class FeatureImputation:
             metadata_frames.append(metadata)
             values_by_table[table_alias] = imputation_values
             excluded_by_table[table_alias] = excluded_features
-            columns_by_table[table_alias] = retained_features
 
         combined_metadata = pd.concat(metadata_frames, ignore_index=True)
         self.params["imputation_values"] = values_by_table
         self.params["imputation_metadata"] = combined_metadata
-        self.params["imputation_excluded_features_by_table"] = excluded_by_table
         self.params["imputation_excluded_features"] = list(
             dict.fromkeys(
                 feature
@@ -483,10 +500,9 @@ class FeatureImputation:
                 for feature in features
             )
         )
-        self.params["imputation_columns"] = columns_by_table
         return combined_metadata
 
-    def transform_feature_tables(
+    def apply_imputation_to_splits(
         self,
         split_tables: Mapping[str, Mapping[str, pd.DataFrame]],
     ) -> dict[str, dict[str, pd.DataFrame]]:
@@ -527,10 +543,9 @@ class FeatureImputation:
                 )
                 transformed[dataset_name][table_alias] = imputed_table
 
-        self.params["imputed_feature_tables"] = transformed
         return transformed
 
-    def persist_imputation_outputs(
+    def save_imputation_outputs_to_db(
         self,
         metadata: pd.DataFrame,
         imputed_feature_tables: Mapping[str, Mapping[str, pd.DataFrame]],
@@ -554,10 +569,8 @@ class FeatureImputation:
         )
 
         qualified_tables: dict[str, dict[str, str]] = {}
-        table_names: dict[str, dict[str, str]] = {}
         for dataset_name in DATASET_NAMES:
             qualified_tables[dataset_name] = {}
-            table_names[dataset_name] = {}
             for table_alias in feature_tables:
                 table_name = f"{table_prefix}_{dataset_name}_{table_alias}"
                 imputed_table = imputed_feature_tables[dataset_name][table_alias]
@@ -584,33 +597,36 @@ class FeatureImputation:
                     },
                     method=None,
                 )
-                table_names[dataset_name][table_alias] = table_name
                 qualified_tables[dataset_name][table_alias] = (
                     f"{schema}.{table_name}"
                 )
 
-        self.params["imputed_table_names"] = table_names
         self.params["imputed_tables"] = qualified_tables
         self.params["imputation_metadata_table"] = f"{schema}.{metadata_table}"
         return qualified_tables
 
     def download_and_join_imputed_tables(self) -> pd.DataFrame:
-        """Build separate imputed tables, then join each dataset in memory."""
-        source_tables = self.download_feature_tables()
-        split_tables = self.split_feature_tables(source_tables)
-        metadata = self.fit_imputation_metadata(split_tables["train"])
-        imputed_feature_tables = self.transform_feature_tables(split_tables)
-        self.persist_imputation_outputs(metadata, imputed_feature_tables)
+        """Persist split tables and retain one joined dataset per split."""
+        try:
+            source_tables = self.download_feature_tables()
+            split_tables = self.split_feature_tables(source_tables)
+            metadata = self.fit_imputation_metadata(split_tables["train"])
+            imputed_feature_tables = self.apply_imputation_to_splits(split_tables)
+            self.save_imputation_outputs_to_db(metadata, imputed_feature_tables)
 
-        joined_datasets = {
-            dataset_name: self.download_and_join_feature_tables(
-                self.params["imputed_table_names"][dataset_name]
-            )
-            for dataset_name in DATASET_NAMES
-        }
-        self.params["imputed_datasets"] = joined_datasets
-        self.params["zero_imputed_train_set"] = joined_datasets["train"]
-        return joined_datasets["train"]
+            joined_datasets = {
+                dataset_name: self.join_feature_tables(
+                    imputed_feature_tables[dataset_name]
+                )
+                for dataset_name in DATASET_NAMES
+            }
+            # Feature selection consumes train; later training/evaluation steps
+            # consume val, test, and OOT from this same payload mapping.
+            self.params["imputed_datasets"] = joined_datasets
+            return joined_datasets["train"]
+        finally:
+            # Reflected types are required only while creating output tables.
+            self.params.pop("feature_table_dtypes", None)
 
     def create_zero_imputed_tables(self) -> dict[str, dict[str, str]]:
         """Build and return all per-dataset, per-source imputed tables."""
@@ -622,18 +638,14 @@ class FeatureImputation:
         self.etl_helper.logger.log_event("INFO", "Feature imputation started")
 
         try:
-            train_dataset = self.download_and_join_imputed_tables()
+            self.download_and_join_imputed_tables()
             result = {
                 "imputed_tables": self.params["imputed_tables"],
                 "imputed_datasets": self.params["imputed_datasets"],
-                "imputed_dataset": train_dataset,
                 "imputation_values": self.params["imputation_values"],
                 "imputation_metadata": self.params["imputation_metadata"],
                 "imputation_excluded_features": self.params[
                     "imputation_excluded_features"
-                ],
-                "imputation_excluded_features_by_table": self.params[
-                    "imputation_excluded_features_by_table"
                 ],
                 "imputation_metadata_table": self.params[
                     "imputation_metadata_table"

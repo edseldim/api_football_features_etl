@@ -55,6 +55,7 @@
         "correlation_output_file":"highly_correlated_features.csv",
         "correlation_filter_output_file":"correlation_filtered_features.csv",
         "rfe_output_file":"rfe_feature_selection.csv",
-        "one_vs_rest_rfe_output_file":"one_vs_rest_rfe_feature_selection.csv"
+        "one_vs_rest_rfe_output_file":"one_vs_rest_rfe_feature_selection.csv",
+        "consolidated_rfe_output_file":"consolidated_rfe_features.csv"
     }
 }

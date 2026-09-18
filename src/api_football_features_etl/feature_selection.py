@@ -664,6 +664,152 @@ class FeatureSelection:
             ignore_index=True,
         )
 
+    @staticmethod
+    def consolidate_rfe_features(
+        rfe_results: pd.DataFrame,
+        one_vs_rest_rfe_results: pd.DataFrame,
+    ) -> pd.DataFrame:
+        """Return the union of multiclass and per-class RFE selections."""
+        result_columns = [
+            "feature",
+            "feature_type",
+            "selection_source",
+            "selected_by_multiclass_rfe",
+            "selected_by_one_vs_rest_rfe",
+            "multiclass_feature_importance",
+            "one_vs_rest_selected_classes",
+            "one_vs_rest_selected_class_count",
+            "one_vs_rest_max_feature_importance",
+            "one_vs_rest_mean_feature_importance",
+        ]
+        multiclass_selected = rfe_results.loc[
+            rfe_results["rfe_selected"],
+            ["feature", "feature_type", "feature_importance"],
+        ].copy()
+        one_vs_rest_selected = one_vs_rest_rfe_results.loc[
+            one_vs_rest_rfe_results["one_vs_rest_rfe_selected"],
+            ["target_class", "feature", "one_vs_rest_feature_importance"],
+        ].copy()
+
+        selected_names = set(multiclass_selected["feature"]).union(
+            one_vs_rest_selected["feature"]
+        )
+        if not selected_names:
+            return pd.DataFrame(columns=result_columns)
+
+        feature_types = (
+            rfe_results.loc[
+                rfe_results["feature"].isin(selected_names),
+                ["feature", "feature_type"],
+            ]
+            .drop_duplicates(subset="feature")
+            .set_index("feature")["feature_type"]
+        )
+        multiclass_importance = multiclass_selected.set_index("feature")[
+            "feature_importance"
+        ]
+
+        one_vs_rest_summary = pd.DataFrame()
+        if not one_vs_rest_selected.empty:
+            one_vs_rest_summary = (
+                one_vs_rest_selected.groupby("feature", sort=False)
+                .agg(
+                    one_vs_rest_selected_classes=(
+                        "target_class",
+                        lambda values: "|".join(map(str, values)),
+                    ),
+                    one_vs_rest_selected_class_count=("target_class", "size"),
+                    one_vs_rest_max_feature_importance=(
+                        "one_vs_rest_feature_importance",
+                        "max",
+                    ),
+                    one_vs_rest_mean_feature_importance=(
+                        "one_vs_rest_feature_importance",
+                        "mean",
+                    ),
+                )
+            )
+
+        rows: list[dict[str, Any]] = []
+        for feature in selected_names:
+            selected_by_multiclass = feature in multiclass_importance.index
+            selected_by_one_vs_rest = feature in one_vs_rest_summary.index
+            if selected_by_multiclass and selected_by_one_vs_rest:
+                selection_source = "multiclass_and_one_vs_rest"
+            elif selected_by_multiclass:
+                selection_source = "multiclass"
+            else:
+                selection_source = "one_vs_rest"
+
+            one_vs_rest_values = (
+                one_vs_rest_summary.loc[feature]
+                if selected_by_one_vs_rest
+                else None
+            )
+            rows.append(
+                {
+                    "feature": feature,
+                    "feature_type": feature_types.at[feature],
+                    "selection_source": selection_source,
+                    "selected_by_multiclass_rfe": selected_by_multiclass,
+                    "selected_by_one_vs_rest_rfe": selected_by_one_vs_rest,
+                    "multiclass_feature_importance": (
+                        float(multiclass_importance.at[feature])
+                        if selected_by_multiclass
+                        else float("nan")
+                    ),
+                    "one_vs_rest_selected_classes": (
+                        one_vs_rest_values["one_vs_rest_selected_classes"]
+                        if one_vs_rest_values is not None
+                        else pd.NA
+                    ),
+                    "one_vs_rest_selected_class_count": (
+                        int(one_vs_rest_values["one_vs_rest_selected_class_count"])
+                        if one_vs_rest_values is not None
+                        else 0
+                    ),
+                    "one_vs_rest_max_feature_importance": (
+                        float(
+                            one_vs_rest_values[
+                                "one_vs_rest_max_feature_importance"
+                            ]
+                        )
+                        if one_vs_rest_values is not None
+                        else float("nan")
+                    ),
+                    "one_vs_rest_mean_feature_importance": (
+                        float(
+                            one_vs_rest_values[
+                                "one_vs_rest_mean_feature_importance"
+                            ]
+                        )
+                        if one_vs_rest_values is not None
+                        else float("nan")
+                    ),
+                }
+            )
+
+        consolidated = pd.DataFrame(rows, columns=result_columns)
+        consolidated["_source_order"] = consolidated["selection_source"].map(
+            {
+                "multiclass_and_one_vs_rest": 0,
+                "multiclass": 1,
+                "one_vs_rest": 2,
+            }
+        )
+        return consolidated.sort_values(
+            [
+                "_source_order",
+                "one_vs_rest_selected_class_count",
+                "multiclass_feature_importance",
+                "one_vs_rest_max_feature_importance",
+                "feature",
+            ],
+            ascending=[True, False, False, False, True],
+            na_position="last",
+            ignore_index=True,
+        ).drop(columns="_source_order")
+
     def filter_correlated_features(
         self,
         imputed_dataset: pd.DataFrame,
@@ -952,6 +1098,18 @@ class FeatureSelection:
         one_vs_rest_rfe_results.to_csv(output_path, index=False)
         return output_path
 
+    def write_consolidated_rfe_features(
+        self, consolidated_rfe_features: pd.DataFrame
+    ) -> Path:
+        """Write the final feature union consumed by model training."""
+        output_path = self._output_path(
+            "consolidated_rfe_output_file",
+            "consolidated_rfe_features.csv",
+        )
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        consolidated_rfe_features.to_csv(output_path, index=False)
+        return output_path
+
     def write_correlation_filter_results(
         self, correlation_filter_results: pd.DataFrame
     ) -> Path:
@@ -1029,6 +1187,11 @@ class FeatureSelection:
                     random_state,
                 )
             )
+            consolidated_rfe_features = self.consolidate_rfe_features(
+                rfe_results,
+                one_vs_rest_rfe_results,
+            )
+            model_feature_names = consolidated_rfe_features["feature"].tolist()
             selected_continuous = continuous_scores.sort_values(
                 "linfoot_correlation", ascending=False
             )
@@ -1046,6 +1209,11 @@ class FeatureSelection:
             output_paths["one_vs_rest_rfe"] = (
                 self.write_one_vs_rest_rfe_results(one_vs_rest_rfe_results)
             )
+            output_paths["consolidated_rfe"] = (
+                self.write_consolidated_rfe_features(
+                    consolidated_rfe_features
+                )
+            )
             output_paths["correlation_filter"] = (
                 self.write_correlation_filter_results(
                     correlation_filter_results
@@ -1058,10 +1226,13 @@ class FeatureSelection:
                 "correlation_filtered_features": correlation_filter_results,
                 "rfe_features": rfe_results,
                 "one_vs_rest_rfe_features": one_vs_rest_rfe_results,
+                "consolidated_rfe_features": consolidated_rfe_features,
+                "model_feature_names": model_feature_names,
                 "output_paths": output_paths,
             }
             payload = self.etl_helper.get_payload().copy()
             payload["selected_features"] = result
+            payload["model_feature_names"] = model_feature_names
             self.etl_helper.set_payload(payload)
 
             self.etl_helper.logger.log_event(
@@ -1072,6 +1243,7 @@ class FeatureSelection:
                 f"| rfe_selected={int(rfe_results['rfe_selected'].sum())} "
                 "| one_vs_rest_rfe_selected="
                 f"{int(one_vs_rest_rfe_results['one_vs_rest_rfe_selected'].sum())} "
+                f"| consolidated_features={len(model_feature_names)} "
                 f"| high_correlation_pairs={len(high_correlations)}",
             )
             return result

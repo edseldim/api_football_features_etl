@@ -48,10 +48,13 @@
         "mutual_information_threshold":0.01,
         "cramers_v_threshold":0.1,
         "rfe_features_to_select":100,
+        "one_vs_rest_classes":[0,1,2],
+        "one_vs_rest_rfe_features_to_select":100,
         "continuous_output_file":"selected_continuous_features.csv",
         "categorical_output_file":"selected_categorical_features.csv",
         "correlation_output_file":"highly_correlated_features.csv",
         "correlation_filter_output_file":"correlation_filtered_features.csv",
-        "rfe_output_file":"rfe_feature_selection.csv"
+        "rfe_output_file":"rfe_feature_selection.csv",
+        "one_vs_rest_rfe_output_file":"one_vs_rest_rfe_feature_selection.csv"
     }
 }

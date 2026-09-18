@@ -193,7 +193,11 @@ SELECT *
 FROM prod_match_summary
 WHERE (home_winner = TRUE AND away_winner = FALSE) 
 	OR (home_winner = FALSE AND away_winner = TRUE)
-	OR (home_winner = FALSE AND away_winner = FALSE)
+	OR (
+		home_goals = away_goals
+		AND COALESCE(home_winner, FALSE) = FALSE
+		AND COALESCE(away_winner, FALSE) = FALSE
+	)
 ),split_home_away_rows AS
 (
 SELECT
@@ -206,13 +210,10 @@ t1.fixture_id
 ,t1.league_id
 ,t1.home_team_id team_id
 ,t1.home_goals goals
-,t1.home_winner is_winner
+,COALESCE(t1.home_winner, FALSE) is_winner
 ,t1.league_season
 ,1 is_home
 FROM filter_observations t1
-WHERE (home_winner = TRUE) 
-	OR (away_winner = TRUE AND home_winner = FALSE)
-	OR (home_winner = FALSE AND away_winner = FALSE)
 UNION
 SELECT
 t1.fixture_id
@@ -224,13 +225,10 @@ t1.fixture_id
 ,t1.league_id
 ,t1.away_team_id team_id
 ,t1.away_goals goals
-,t1.away_winner is_winner
+,COALESCE(t1.away_winner, FALSE) is_winner
 ,t1.league_season
 ,0 is_home
 FROM filter_observations t1
-WHERE (away_winner = TRUE)
-	OR (away_winner = FALSE AND home_winner = TRUE)
-	OR (home_winner = FALSE AND away_winner = FALSE)
 )
 SELECT
 
@@ -2451,9 +2449,9 @@ t1.fixture_id
 ,t2.team_id away_team_id
 , 
     CASE
-        WHEN t1.is_winner = TRUE THEN 1
-        WHEN t2.is_winner = TRUE THEN 2
-        WHEN t1.is_winner = FALSE AND t2.is_winner = FALSE THEN 0
+        WHEN t1.goals > t2.goals THEN 1
+        WHEN t1.goals < t2.goals THEN 2
+        WHEN t1.goals = t2.goals THEN 0
     END target
 FROM matches_numbered_part_1 t1
 INNER JOIN matches_numbered_part_2 t2 ON t1.fixture_id = t2.fixture_id

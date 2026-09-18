@@ -205,7 +205,6 @@ class FeatureSelection:
         ]
         result_columns = [
             "feature",
-            "catalog_feature_type",
             "feature_type",
             "mutual_information",
             "linfoot_correlation",
@@ -238,43 +237,10 @@ class FeatureSelection:
                 "FeatureSelection.max_discrete_cardinality must be at least 2"
             )
 
-        discrete_features: list[bool] = []
-        effective_feature_types: list[str] = []
-        reclassified_features: list[str] = []
-        for row in numeric_catalog.itertuples(index=False):
-            values = numeric_data[row.feature]
-            is_integer_valued = values.eq(values.round()).all()
-            is_low_cardinality = (
-                values.nunique(dropna=False) <= max_discrete_cardinality
-            )
-            is_discrete = (
-                row.feature_type == "integer"
-                and is_integer_valued
-                and is_low_cardinality
-            )
-            discrete_features.append(bool(is_discrete))
-            effective_feature_types.append(
-                "integer" if is_discrete else "continuous"
-            )
-            if row.feature_type == "integer" and not is_discrete:
-                reclassified_features.append(row.feature)
-
-        if reclassified_features:
-            preview = ", ".join(reclassified_features[:20])
-            remaining = len(reclassified_features) - 20
-            if remaining > 0:
-                preview += f", ... (+{remaining} more)"
-            self.etl_helper.logger.log_event(
-                "INFO",
-                "Dynamically treating cataloged integer features as continuous "
-                "because they contain fractional values or exceed "
-                f"{max_discrete_cardinality} unique values: {preview}",
-            )
-
         mutual_information = mutual_info_classif(
             numeric_data,
             imputed_dataset[target],
-            discrete_features=discrete_features,
+            discrete_features=False,
             random_state=random_state,
         )
 
@@ -348,8 +314,7 @@ class FeatureSelection:
             rows.append(
                 {
                     "feature": feature,
-                    "catalog_feature_type": catalog_row.feature_type,
-                    "feature_type": effective_feature_types[feature_index],
+                    "feature_type": catalog_row.feature_type,
                     "mutual_information": feature_mutual_information,
                     "linfoot_correlation": linfoot_correlation,
                     "strength": self.categorize_linfoot_corr(linfoot_correlation),
@@ -550,6 +515,154 @@ class FeatureSelection:
             ignore_index=True,
         )
         return rfe_results
+
+    def run_one_vs_rest_rfe_feature_selection(
+        self,
+        imputed_dataset: pd.DataFrame,
+        feature_filter_results: pd.DataFrame,
+        candidate_features: list[str],
+        target: str,
+        random_state: int,
+    ) -> pd.DataFrame:
+        """Run an independent binary RFE for each target class versus the rest."""
+        features_to_select = self.params.get(
+            "one_vs_rest_rfe_features_to_select",
+            self.params.get("rfe_features_to_select"),
+        )
+        if not isinstance(features_to_select, int) or isinstance(
+            features_to_select, bool
+        ):
+            raise TypeError(
+                "FeatureSelection.one_vs_rest_rfe_features_to_select must be "
+                "an integer"
+            )
+        if features_to_select < 1:
+            raise ValueError(
+                "FeatureSelection.one_vs_rest_rfe_features_to_select must be "
+                "at least 1"
+            )
+
+        target_values = imputed_dataset[target]
+        observed_classes = target_values.drop_duplicates().tolist()
+        target_classes = self.params.get(
+            "one_vs_rest_classes", observed_classes
+        )
+        if not isinstance(target_classes, list) or not target_classes:
+            raise TypeError(
+                "FeatureSelection.one_vs_rest_classes must be a non-empty list"
+            )
+        if len(pd.Index(target_classes).unique()) != len(target_classes):
+            raise ValueError(
+                "FeatureSelection.one_vs_rest_classes cannot contain duplicates"
+            )
+        missing_classes = [
+            target_class
+            for target_class in target_classes
+            if not target_values.eq(target_class).any()
+        ]
+        if missing_classes:
+            missing = ", ".join(map(str, missing_classes))
+            raise ValueError(
+                "Configured one-vs-rest classes are missing from the training "
+                f"target: {missing}"
+            )
+        effective_features_to_select = min(
+            features_to_select, len(candidate_features)
+        )
+        candidate_data = imputed_dataset.loc[:, candidate_features].apply(
+            pd.to_numeric, errors="raise"
+        )
+        class_results: list[pd.DataFrame] = []
+
+        for target_class in target_classes:
+            results = feature_filter_results.copy()
+            results.insert(0, "target_class", target_class)
+            results["positive_class_count"] = int(
+                target_values.eq(target_class).sum()
+            )
+            results["negative_class_count"] = int(
+                target_values.ne(target_class).sum()
+            )
+            results["one_vs_rest_rfe_selected"] = False
+            results["one_vs_rest_rfe_ranking"] = pd.Series(
+                pd.NA, index=results.index, dtype="Int64"
+            )
+            results["one_vs_rest_feature_importance"] = float("nan")
+
+            if candidate_features:
+                binary_target = target_values.eq(target_class).astype(int)
+                estimator = RandomForestClassifier(
+                    n_estimators=100,
+                    class_weight="balanced",
+                    random_state=random_state,
+                    n_jobs=-1,
+                )
+                selector = RFE(
+                    estimator=estimator,
+                    n_features_to_select=effective_features_to_select,
+                    step=0.1,
+                    importance_getter="feature_importances_",
+                )
+                selector.fit(candidate_data, binary_target)
+
+                support_by_feature = dict(
+                    zip(candidate_features, selector.support_)
+                )
+                ranking_by_feature = dict(
+                    zip(candidate_features, selector.ranking_)
+                )
+                candidate_index = results["feature"].isin(candidate_features)
+                results.loc[candidate_index, "one_vs_rest_rfe_selected"] = (
+                    results.loc[candidate_index, "feature"]
+                    .map(support_by_feature)
+                    .astype(bool)
+                )
+                results.loc[candidate_index, "one_vs_rest_rfe_ranking"] = (
+                    results.loc[candidate_index, "feature"].map(ranking_by_feature)
+                )
+                selected_features = [
+                    feature
+                    for feature, selected in zip(
+                        candidate_features, selector.support_
+                    )
+                    if selected
+                ]
+                importance_by_feature = dict(
+                    zip(selected_features, selector.estimator_.feature_importances_)
+                )
+                results["one_vs_rest_feature_importance"] = results["feature"].map(
+                    importance_by_feature
+                )
+
+            class_results.append(results)
+
+        if not candidate_features:
+            self.etl_helper.logger.log_event(
+                "INFO",
+                "One-vs-rest RFE skipped because no features passed threshold "
+                "and correlation filtering",
+            )
+        elif effective_features_to_select < features_to_select:
+            self.etl_helper.logger.log_event(
+                "INFO",
+                "One-vs-rest RFE requested more features than passed "
+                "prefiltering; selecting all "
+                f"{effective_features_to_select} candidate features per class",
+            )
+
+        one_vs_rest_results = pd.concat(class_results, ignore_index=True)
+        return one_vs_rest_results.sort_values(
+            [
+                "target_class",
+                "one_vs_rest_rfe_selected",
+                "one_vs_rest_feature_importance",
+                "one_vs_rest_rfe_ranking",
+                "feature",
+            ],
+            ascending=[True, False, False, True, True],
+            na_position="last",
+            ignore_index=True,
+        )
 
     def filter_correlated_features(
         self,
@@ -827,6 +940,18 @@ class FeatureSelection:
         rfe_results.to_csv(output_path, index=False)
         return output_path
 
+    def write_one_vs_rest_rfe_results(
+        self, one_vs_rest_rfe_results: pd.DataFrame
+    ) -> Path:
+        """Write per-class one-vs-rest RFE rankings and importances to CSV."""
+        output_path = self._output_path(
+            "one_vs_rest_rfe_output_file",
+            "one_vs_rest_rfe_feature_selection.csv",
+        )
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        one_vs_rest_rfe_results.to_csv(output_path, index=False)
+        return output_path
+
     def write_correlation_filter_results(
         self, correlation_filter_results: pd.DataFrame
     ) -> Path:
@@ -895,6 +1020,15 @@ class FeatureSelection:
                 target,
                 random_state,
             )
+            one_vs_rest_rfe_results = (
+                self.run_one_vs_rest_rfe_feature_selection(
+                    imputed_dataset,
+                    feature_filter_results,
+                    candidate_features,
+                    target,
+                    random_state,
+                )
+            )
             selected_continuous = continuous_scores.sort_values(
                 "linfoot_correlation", ascending=False
             )
@@ -909,6 +1043,9 @@ class FeatureSelection:
                 high_correlations
             )
             output_paths["rfe"] = self.write_rfe_results(rfe_results)
+            output_paths["one_vs_rest_rfe"] = (
+                self.write_one_vs_rest_rfe_results(one_vs_rest_rfe_results)
+            )
             output_paths["correlation_filter"] = (
                 self.write_correlation_filter_results(
                     correlation_filter_results
@@ -920,6 +1057,7 @@ class FeatureSelection:
                 "high_correlations": high_correlations,
                 "correlation_filtered_features": correlation_filter_results,
                 "rfe_features": rfe_results,
+                "one_vs_rest_rfe_features": one_vs_rest_rfe_results,
                 "output_paths": output_paths,
             }
             payload = self.etl_helper.get_payload().copy()
@@ -932,6 +1070,8 @@ class FeatureSelection:
                 f"| continuous={len(selected_continuous)} "
                 f"| categorical={len(selected_categorical)} "
                 f"| rfe_selected={int(rfe_results['rfe_selected'].sum())} "
+                "| one_vs_rest_rfe_selected="
+                f"{int(one_vs_rest_rfe_results['one_vs_rest_rfe_selected'].sum())} "
                 f"| high_correlation_pairs={len(high_correlations)}",
             )
             return result
